@@ -19,10 +19,18 @@ add_subdirectory(extern/CommonLibVR)
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/cmake/CommonLibSSE.cmake")
 
+find_package(minhook CONFIG REQUIRED)
+
 add_commonlibsse_plugin(
     ${PROJECT_NAME}
     SOURCES
         src/plugin.cpp
+)
+
+target_link_libraries(
+    ${PROJECT_NAME}
+    PRIVATE
+        minhook::minhook
 )
 
 target_compile_options(

@@ -1,10 +1,16 @@
 #include "PCH.h"
 #include <MinHook.h>
 
+#include <memory>
+
 namespace
 {
     RE::TESWorldSpace* tamrielWorldspace = nullptr;
     RE::TESWorldSpace* solstheimWorldspace = nullptr;
+    RE::TESWorldSpace* selectedMapWorldspace = nullptr;
+
+    RE::BSTArray<RE::ObjectRefHandle> selectedMapMarkerHandles;
+    thread_local bool suppressPlayerMarkerLoop = false;
 
     void LogWorldspace(
         std::string_view label,
@@ -13,23 +19,96 @@ namespace
     using ResolveMapWorldSpace_t = RE::TESWorldSpace* (*)();
     ResolveMapWorldSpace_t originalResolveMapWorldSpace = nullptr;
 
+    using CollectMapMarkerHandles_t = void (*)(
+        RE::TESWorldSpace*,
+        RE::BSTArray<RE::ObjectRefHandle>*,
+        bool);
+
+    using AddCurrentLocationMarker_t = void (*)(
+        RE::BSTArray<RE::MapMenuMarker>*,
+        RE::NiPoint3*);
+    AddCurrentLocationMarker_t originalAddCurrentLocationMarker = nullptr;
+
+    using AddMarkerFromHandle_t = std::uint64_t (*)(
+        RE::BSTArray<RE::MapMenuMarker>**,
+        RE::ObjectRefHandle*);
+    AddMarkerFromHandle_t originalAddMarkerFromHandle = nullptr;
+
     RE::TESWorldSpace* ResolveMapWorldSpaceHook()
     {
         auto* result = originalResolveMapWorldSpace();
+        selectedMapWorldspace = nullptr;
 
         if (result == tamrielWorldspace && solstheimWorldspace) {
+            selectedMapWorldspace = solstheimWorldspace;
             SKSE::log::info(
                 "Map worldspace override: Tamriel -> Solstheim");
-            return solstheimWorldspace;
+            return selectedMapWorldspace;
         }
 
         if (result == solstheimWorldspace && tamrielWorldspace) {
+            selectedMapWorldspace = tamrielWorldspace;
             SKSE::log::info(
                 "Map worldspace override: Solstheim -> Tamriel");
-            return tamrielWorldspace;
+            return selectedMapWorldspace;
         }
 
         return result;
+    }
+
+    void AddCurrentLocationMarkerHook(
+        RE::BSTArray<RE::MapMenuMarker>* mapMarkers,
+        RE::NiPoint3* playerMarkerPosition)
+    {
+        suppressPlayerMarkerLoop = false;
+
+        originalAddCurrentLocationMarker(
+            mapMarkers,
+            playerMarkerPosition);
+
+        if (!selectedMapWorldspace || !mapMarkers) {
+            return;
+        }
+
+        static REL::Relocation<CollectMapMarkerHandles_t>
+            collectMapMarkerHandles{ REL::ID(20536) };
+
+        selectedMapMarkerHandles.clear();
+        collectMapMarkerHandles(
+            selectedMapWorldspace,
+            std::addressof(selectedMapMarkerHandles),
+            false);
+
+        const auto markerCountBefore = mapMarkers->size();
+        auto* destination = mapMarkers;
+        for (auto& handle : selectedMapMarkerHandles) {
+            originalAddMarkerFromHandle(
+                std::addressof(destination),
+                std::addressof(handle));
+        }
+        const auto markersAdded =
+            mapMarkers->size() - markerCountBefore;
+
+        suppressPlayerMarkerLoop = true;
+
+        SKSE::log::info(
+            "Collected {} handles and added {} markers for selected "
+            "map worldspace {:08X}.",
+            selectedMapMarkerHandles.size(),
+            markersAdded,
+            selectedMapWorldspace->GetFormID());
+    }
+
+    std::uint64_t AddMarkerFromHandleHook(
+        RE::BSTArray<RE::MapMenuMarker>** destination,
+        RE::ObjectRefHandle* handle)
+    {
+        if (suppressPlayerMarkerLoop) {
+            suppressPlayerMarkerLoop = false;
+            return 0;
+        }
+
+        return originalAddMarkerFromHandle(destination, handle);
     }
 
     bool InstallResolverHook()
@@ -72,6 +151,66 @@ namespace
         SKSE::log::info(
             "Installed WMS_ResolveMapWorldSpace detour at {:X}.",
             resolver.address());
+        return true;
+    }
+
+    bool InstallMarkerHooks()
+    {
+        REL::Relocation<std::uintptr_t> addCurrentLocationMarker{
+            REL::ID(53076)
+        };
+        REL::Relocation<std::uintptr_t> addMarkerFromHandle{
+            REL::ID(53126)
+        };
+
+        const auto createCurrentLocationStatus = MH_CreateHook(
+            reinterpret_cast<void*>(addCurrentLocationMarker.address()),
+            reinterpret_cast<void*>(AddCurrentLocationMarkerHook),
+            reinterpret_cast<void**>(&originalAddCurrentLocationMarker));
+
+        if (createCurrentLocationStatus != MH_OK) {
+            SKSE::log::error(
+                "Current-location marker hook creation failed: {}",
+                static_cast<int>(createCurrentLocationStatus));
+            return false;
+        }
+
+        const auto createMarkerStatus = MH_CreateHook(
+            reinterpret_cast<void*>(addMarkerFromHandle.address()),
+            reinterpret_cast<void*>(AddMarkerFromHandleHook),
+            reinterpret_cast<void**>(&originalAddMarkerFromHandle));
+
+        if (createMarkerStatus != MH_OK) {
+            SKSE::log::error(
+                "Marker-from-handle hook creation failed: {}",
+                static_cast<int>(createMarkerStatus));
+            return false;
+        }
+
+        const auto enableCurrentLocationStatus = MH_EnableHook(
+            reinterpret_cast<void*>(addCurrentLocationMarker.address()));
+
+        if (enableCurrentLocationStatus != MH_OK) {
+            SKSE::log::error(
+                "Current-location marker hook activation failed: {}",
+                static_cast<int>(enableCurrentLocationStatus));
+            return false;
+        }
+
+        const auto enableMarkerStatus = MH_EnableHook(
+            reinterpret_cast<void*>(addMarkerFromHandle.address()));
+
+        if (enableMarkerStatus != MH_OK) {
+            SKSE::log::error(
+                "Marker-from-handle hook activation failed: {}",
+                static_cast<int>(enableMarkerStatus));
+            return false;
+        }
+
+        SKSE::log::info(
+            "Installed MapMenu marker detours at {:X} and {:X}.",
+            addCurrentLocationMarker.address(),
+            addMarkerFromHandle.address());
         return true;
     }
 
@@ -206,6 +345,10 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
     SKSE::log::info("WorldMapSelector loaded successfully.");
 
     if (!InstallResolverHook()) {
+        return false;
+    }
+
+    if (!InstallMarkerHooks()) {
         return false;
     }
 

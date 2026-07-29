@@ -3,6 +3,7 @@
 namespace WMS::WorldspaceOverride
 {
     bool Install();
-    void LoadTestWorldspaces();
+    void BeginSession();
+    void ResetSession();
     RE::TESWorldSpace* GetSelectedMapWorldspace();
 }

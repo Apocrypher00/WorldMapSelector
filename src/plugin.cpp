@@ -1,5 +1,6 @@
 #include "Diagnostics.h"
 #include "MapMarkerOverride.h"
+#include "WorldspaceCatalog.h"
 #include "WorldspaceOverride.h"
 
 namespace
@@ -7,7 +8,7 @@ namespace
     void OnSKSEMessage(SKSE::MessagingInterface::Message* message)
     {
         if (message && (message->type == SKSE::MessagingInterface::kDataLoaded)) {
-            WMS::WorldspaceOverride::LoadTestWorldspaces();
+            WMS::WorldspaceCatalog::Build();
         }
     }
 }

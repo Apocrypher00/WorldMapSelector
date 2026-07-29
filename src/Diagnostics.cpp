@@ -1,4 +1,5 @@
 #include "Diagnostics.h"
+#include "WorldspaceOverride.h"
 
 namespace WMS::Diagnostics
 {
@@ -69,7 +70,10 @@ namespace WMS::Diagnostics
                 );
 
                 if (event->opening) {
+                    WorldspaceOverride::BeginSession();
                     LogWorldspaceState();
+                } else {
+                    WorldspaceOverride::ResetSession();
                 }
 
                 return RE::BSEventNotifyControl::kContinue;

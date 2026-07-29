@@ -27,6 +27,7 @@ add_commonlibsse_plugin(
         src/Config.cpp
         src/Diagnostics.cpp
         src/MapMarkerOverride.cpp
+        src/WorldspaceCatalog.cpp
         src/WorldspaceOverride.cpp
         src/plugin.cpp
 )

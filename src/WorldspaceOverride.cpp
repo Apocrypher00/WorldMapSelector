@@ -3,7 +3,6 @@
 #include "WorldspaceOverride.h"
 
 #include <MinHook.h>
-#include <intrin.h>
 
 namespace WMS::WorldspaceOverride
 {
@@ -20,61 +19,6 @@ namespace WMS::WorldspaceOverride
         using ResolveMapWorldSpace_t = RE::TESWorldSpace* (*)();
         ResolveMapWorldSpace_t originalResolveMapWorldSpace = nullptr;
 
-        const char* DescribeResolverCaller(std::uintptr_t callRva)
-        {
-            switch (callRva) {
-            case 0x983B40:
-                return "MapMenu constructor";
-            case 0x98524E:
-                return "MapMenu::ProcessMessage";
-            case 0x9885BD:
-                return "world-map resource initialization";
-            case 0x988955:
-                return "world-map lifecycle setup";
-            case 0x9892EA:
-                return "world-map lifecycle A";
-            case 0x989452:
-                return "world-map lifecycle B";
-            default:
-                return "unknown";
-            }
-        }
-
-        void LogResolverCall(
-            std::uintptr_t returnAddress,
-            RE::TESWorldSpace* actualWorldspace)
-        {
-            constexpr std::uintptr_t callInstructionSize = 5;
-
-            const auto returnRva =
-                returnAddress - REL::Module::get().base();
-            const auto callRva =
-                returnRva >= callInstructionSize
-                    ? returnRva - callInstructionSize
-                    : returnRva;
-            const auto* latchedWorldspace =
-                selectedMapWorldspace.load(
-                    std::memory_order_acquire);
-            auto* ui = RE::UI::GetSingleton();
-            const auto mapMenuOpen =
-                ui && ui->IsMenuOpen(RE::MapMenu::MENU_NAME);
-
-            SKSE::log::info(
-                "Resolver call: caller=\"{}\", RVA={:X}, "
-                "MapMenuOpen={}, actual={:08X}, "
-                "sessionActive={}, selected={:08X}.",
-                DescribeResolverCaller(callRva),
-                callRva,
-                mapMenuOpen,
-                actualWorldspace
-                    ? actualWorldspace->GetFormID()
-                    : 0,
-                sessionActive,
-                latchedWorldspace
-                    ? latchedWorldspace->GetFormID()
-                    : 0);
-        }
-
         bool IsNewSelectionLog(std::string_view message)
         {
             std::scoped_lock lock(selectionLogLock);
@@ -88,13 +32,9 @@ namespace WMS::WorldspaceOverride
 
         RE::TESWorldSpace* ResolveMapWorldSpaceHook()
         {
-            const auto returnAddress =
-                reinterpret_cast<std::uintptr_t>(_ReturnAddress());
             auto* actualWorldspace = originalResolveMapWorldSpace();
 
             std::scoped_lock sessionGuard(sessionLock);
-
-            LogResolverCall(returnAddress, actualWorldspace);
 
             if (sessionActive) {
                 if (auto* selectedWorldspace =

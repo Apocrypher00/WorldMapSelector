@@ -2,5 +2,6 @@
 
 namespace WMS::Config
 {
-    std::string ReadMapSelection();
+    void Load();
+    std::uint32_t GetOpenSelectorKey();
 }

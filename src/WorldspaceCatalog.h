@@ -2,6 +2,14 @@
 
 namespace WMS::WorldspaceCatalog
 {
+    struct MapOption
+    {
+        RE::TESWorldSpace* worldspace = nullptr;
+        std::string displayName;
+        std::string editorID;
+        std::string pluginName;
+    };
+
     struct SelectionResult
     {
         RE::TESWorldSpace* worldspace = nullptr;
@@ -10,5 +18,8 @@ namespace WMS::WorldspaceCatalog
     };
 
     void Build();
+    RE::TESWorldSpace* GetMapOwner(RE::TESWorldSpace* worldspace);
+    std::vector<MapOption> GetOrderedOptions(
+        RE::TESWorldSpace* currentWorldspace);
     SelectionResult ResolveSelection(std::string_view identifier);
 }

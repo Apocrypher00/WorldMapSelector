@@ -1,5 +1,4 @@
-#include "Config.h"
-#include "WorldspaceCatalog.h"
+#include "MapSelection.h"
 #include "WorldspaceOverride.h"
 
 #include <MinHook.h>
@@ -46,37 +45,20 @@ namespace WMS::WorldspaceOverride
                 return actualWorldspace;
             }
 
-            const auto requestedIdentifier =
-                Config::ReadMapSelection();
-            const auto selection =
-                WorldspaceCatalog::ResolveSelection(requestedIdentifier);
-
-            if (!selection.error.empty()) {
-                selectedMapWorldspace.store(
-                    nullptr,
-                    std::memory_order_release);
-
-                if (IsNewSelectionLog(selection.error)) {
-                    SKSE::log::warn(
-                        "{} Using Default.",
-                        selection.error);
-                }
-                return actualWorldspace;
-            }
-
-            auto* selectedWorldspace = selection.worldspace;
-            if (selection.isDefault ||
-                selectedWorldspace == actualWorldspace) {
+            auto* requestedWorldspace =
+                MapSelection::GetSelectedWorldspace();
+            if (!requestedWorldspace ||
+                requestedWorldspace == actualWorldspace) {
                 selectedMapWorldspace.store(
                     nullptr,
                     std::memory_order_release);
 
                 const auto description =
-                    selection.isDefault
+                    !requestedWorldspace
                         ? std::string("Default")
                         : fmt::format(
                               "Default (requested map {:08X} is current)",
-                              selectedWorldspace->GetFormID());
+                              requestedWorldspace->GetFormID());
 
                 if (IsNewSelectionLog(description)) {
                     SKSE::log::info(
@@ -87,20 +69,24 @@ namespace WMS::WorldspaceOverride
             }
 
             selectedMapWorldspace.store(
-                selectedWorldspace,
+                requestedWorldspace,
                 std::memory_order_release);
 
+            const auto* editorID =
+                requestedWorldspace->GetFormEditorID();
             const auto description = fmt::format(
                 "{} -> {:08X}",
-                requestedIdentifier,
-                selectedWorldspace->GetFormID());
+                editorID && editorID[0]
+                    ? editorID
+                    : "<no EditorID>",
+                requestedWorldspace->GetFormID());
             if (IsNewSelectionLog(description)) {
                 SKSE::log::info(
                     "Map selection: {}.",
                     description);
             }
 
-            return selectedWorldspace;
+            return requestedWorldspace;
         }
     }
 

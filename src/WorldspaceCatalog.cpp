@@ -7,15 +7,7 @@ namespace WMS::WorldspaceCatalog
 {
     namespace
     {
-        struct WorldspaceEntry
-        {
-            RE::TESWorldSpace* worldspace = nullptr;
-            std::string displayName;
-            std::string editorID;
-            std::string pluginName;
-        };
-
-        std::vector<WorldspaceEntry> entries;
+        std::vector<MapOption> entries;
         std::shared_mutex entriesLock;
 
         bool EqualsIgnoreCase(std::string_view left, std::string_view right)
@@ -99,7 +91,7 @@ namespace WMS::WorldspaceCatalog
             return;
         }
 
-        std::vector<WorldspaceEntry> newEntries;
+        std::vector<MapOption> newEntries;
 
         for (auto* worldspace :
              dataHandler->GetFormArray<RE::TESWorldSpace>()) {
@@ -144,6 +136,51 @@ namespace WMS::WorldspaceCatalog
                 entry.worldspace->GetFormID(),
                 entry.pluginName);
         }
+    }
+
+    RE::TESWorldSpace* GetMapOwner(RE::TESWorldSpace* worldspace)
+    {
+        return ResolveMapOwner(worldspace);
+    }
+
+    std::vector<MapOption> GetOrderedOptions(
+        RE::TESWorldSpace* currentWorldspace)
+    {
+        std::shared_lock lock(entriesLock);
+        auto result = entries;
+        lock.unlock();
+
+        std::ranges::sort(
+            result,
+            [](const MapOption& left, const MapOption& right) {
+                const auto nameComparison =
+                    _stricmp(
+                        left.displayName.c_str(),
+                        right.displayName.c_str());
+                if (nameComparison != 0) {
+                    return nameComparison < 0;
+                }
+
+                return _stricmp(
+                           left.editorID.c_str(),
+                           right.editorID.c_str()) < 0;
+            });
+
+        auto* currentMap = ResolveMapOwner(currentWorldspace);
+        if (currentMap) {
+            const auto current = std::ranges::find(
+                result,
+                currentMap,
+                &MapOption::worldspace);
+            if (current != result.end()) {
+                std::rotate(
+                    result.begin(),
+                    current,
+                    std::next(current));
+            }
+        }
+
+        return result;
     }
 
     SelectionResult ResolveSelection(std::string_view identifier)

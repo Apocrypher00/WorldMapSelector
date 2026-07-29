@@ -1,3 +1,4 @@
+#include "Config.h"
 #include "MapSelection.h"
 
 namespace WMS::MapSelection
@@ -19,6 +20,16 @@ namespace WMS::MapSelection
         selectedWorldspace.store(
             worldspace,
             std::memory_order_release);
+    }
+
+    void OnMapClosed()
+    {
+        if (!Config::GetPersistSelection() &&
+            GetSelectedWorldspace()) {
+            SelectDefault();
+            SKSE::log::info(
+                "Cleared one-shot map selection.");
+        }
     }
 
     RE::TESWorldSpace* GetSelectedWorldspace()

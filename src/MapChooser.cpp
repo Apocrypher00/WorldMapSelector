@@ -2,6 +2,7 @@
 #include "MapChooser.h"
 #include "MapSelection.h"
 #include "WorldspaceCatalog.h"
+#include "WorldspaceOverride.h"
 
 namespace WMS::MapChooser
 {
@@ -18,6 +19,13 @@ namespace WMS::MapChooser
             kCancel
         };
 
+        enum class FlowMode
+        {
+            kNone,
+            kOpenAfterChoice,
+            kSwitchOpenMap
+        };
+
         struct Action
         {
             ActionType type = ActionType::kCancel;
@@ -29,8 +37,17 @@ namespace WMS::MapChooser
         std::mutex actionsLock;
         std::vector<Action> pendingActions;
 
+        std::mutex flowLock;
+        FlowMode flowMode = FlowMode::kNone;
+        bool reopenAfterMapClose = false;
+
         RE::TESWorldSpace* GetCurrentWorldspace()
         {
+            if (auto* worldspace =
+                    WorldspaceOverride::GetActualMapWorldspace()) {
+                return worldspace;
+            }
+
             if (auto* tes = RE::TES::GetSingleton()) {
                 if (auto* worldspace =
                         tes->GetRuntimeData2().worldSpace) {
@@ -88,6 +105,70 @@ namespace WMS::MapChooser
 
         void ShowPage(std::size_t page);
 
+        void ConfigureFlow(FlowMode mode)
+        {
+            std::scoped_lock lock(flowLock);
+            flowMode = mode;
+        }
+
+        FlowMode ConsumeFlow()
+        {
+            std::scoped_lock lock(flowLock);
+            const auto result = flowMode;
+            flowMode = FlowMode::kNone;
+            return result;
+        }
+
+        void OpenSelectedMap()
+        {
+            auto* tasks = SKSE::GetTaskInterface();
+            if (!tasks) {
+                SKSE::log::error(
+                    "Could not queue the selected world map to open.");
+                return;
+            }
+
+            tasks->AddTask([] {
+                if (auto* queue =
+                        RE::UIMessageQueue::GetSingleton()) {
+                    queue->AddMessage(
+                        RE::MapMenu::MENU_NAME,
+                        RE::UI_MESSAGE_TYPE::kShow,
+                        nullptr);
+                }
+            });
+        }
+
+        void ApplyFlowAfterChoice()
+        {
+            switch (ConsumeFlow()) {
+            case FlowMode::kOpenAfterChoice:
+                OpenSelectedMap();
+                break;
+
+            case FlowMode::kSwitchOpenMap:
+                {
+                    std::scoped_lock lock(flowLock);
+                    reopenAfterMapClose = true;
+                }
+
+                if (auto* queue =
+                        RE::UIMessageQueue::GetSingleton()) {
+                    queue->AddMessage(
+                        RE::MapMenu::MENU_NAME,
+                        RE::UI_MESSAGE_TYPE::kHide,
+                        nullptr);
+                } else {
+                    std::scoped_lock lock(flowLock);
+                    reopenAfterMapClose = false;
+                }
+                break;
+
+            case FlowMode::kNone:
+                break;
+            }
+        }
+
         void HandleAction(const Action& action)
         {
             switch (action.type) {
@@ -97,6 +178,7 @@ namespace WMS::MapChooser
                     "World map selected: Default");
                 SKSE::log::info(
                     "Map chooser selected Default.");
+                ApplyFlowAfterChoice();
                 break;
 
             case ActionType::kSelectMap:
@@ -112,6 +194,7 @@ namespace WMS::MapChooser
                     action.worldspace
                         ? action.worldspace->GetFormID()
                         : 0);
+                ApplyFlowAfterChoice();
                 break;
 
             case ActionType::kPreviousPage:
@@ -120,6 +203,7 @@ namespace WMS::MapChooser
                 break;
 
             case ActionType::kCancel:
+                ConsumeFlow();
                 break;
             }
         }
@@ -232,6 +316,14 @@ namespace WMS::MapChooser
                 });
             }
 
+            if (page > 0) {
+                buttons.emplace_back("&lt;&lt; Previous");
+                actions.push_back({
+                    .type = ActionType::kPreviousPage,
+                    .page = page - 1
+                });
+            }
+
             for (auto index = first; index < last; ++index) {
                 const auto& option = options[index];
                 const auto label =
@@ -251,15 +343,8 @@ namespace WMS::MapChooser
                 });
             }
 
-            if (page > 0) {
-                buttons.emplace_back("Previous");
-                actions.push_back({
-                    .type = ActionType::kPreviousPage,
-                    .page = page - 1
-                });
-            }
             if (page + 1 < pageCount) {
-                buttons.emplace_back("Next");
+                buttons.emplace_back("Next >>");
                 actions.push_back({
                     .type = ActionType::kNextPage,
                     .page = page + 1
@@ -290,11 +375,14 @@ namespace WMS::MapChooser
                 }
                 SKSE::log::error(
                     "Could not open the world-map chooser.");
+                ConsumeFlow();
             }
         }
 
         void Open()
         {
+            Config::Load();
+
             auto* player =
                 RE::PlayerCharacter::GetSingleton();
             auto* ui = RE::UI::GetSingleton();
@@ -302,13 +390,26 @@ namespace WMS::MapChooser
                 return;
             }
 
+            if (ui->IsMenuOpen(RE::MapMenu::MENU_NAME)) {
+                if (!Config::GetAllowChooserWhileMapOpen()) {
+                    return;
+                }
+
+                ConfigureFlow(FlowMode::kSwitchOpenMap);
+                ShowPage(0);
+                return;
+            }
+
             if (ui->GameIsPaused() ||
                 ui->IsModalMenuOpen() ||
-                ui->IsMenuOpen(RE::MapMenu::MENU_NAME) ||
                 ui->IsMenuOpen(RE::MessageBoxMenu::MENU_NAME)) {
                 return;
             }
 
+            ConfigureFlow(
+                Config::GetOpenMapAfterSelection()
+                    ? FlowMode::kOpenAfterChoice
+                    : FlowMode::kNone);
             ShowPage(0);
         }
 
@@ -367,5 +468,27 @@ namespace WMS::MapChooser
             "Registered map chooser hotkey 0x{:02X}.",
             Config::GetOpenSelectorKey());
         return true;
+    }
+
+    bool OnMapMenuClosed()
+    {
+        {
+            std::scoped_lock lock(flowLock);
+            if (!reopenAfterMapClose) {
+                return false;
+            }
+            reopenAfterMapClose = false;
+        }
+
+        if (auto* tasks = SKSE::GetTaskInterface()) {
+            tasks->AddTask([] {
+                OpenSelectedMap();
+            });
+            return true;
+        }
+
+        SKSE::log::error(
+            "Could not reopen MapMenu after switching maps.");
+        return false;
     }
 }

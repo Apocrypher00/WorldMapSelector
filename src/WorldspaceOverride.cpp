@@ -90,6 +90,13 @@ namespace WMS::WorldspaceOverride
         }
     }
 
+    RE::TESWorldSpace* GetActualMapWorldspace()
+    {
+        return originalResolveMapWorldSpace
+            ? originalResolveMapWorldSpace()
+            : nullptr;
+    }
+
     RE::TESWorldSpace* GetSelectedMapWorldspace()
     {
         return selectedMapWorldspace.load(std::memory_order_acquire);

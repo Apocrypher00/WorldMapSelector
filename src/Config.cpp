@@ -5,6 +5,9 @@ namespace
     const auto configPath = std::filesystem::absolute("Data\\SKSE\\Plugins\\WorldMapSelector.ini").string();
 
     std::uint32_t openSelectorKey = 0x44;
+    bool openMapAfterSelection = true;
+    bool persistSelection = true;
+    bool allowChooserWhileMapOpen = true;
 
     std::string ReadString(
         const char* section,
@@ -64,6 +67,43 @@ namespace
 
         return static_cast<std::uint32_t>(parsed);
     }
+
+    std::optional<bool> ParseBool(std::string_view value)
+    {
+        if (_stricmp(value.data(), "true") == 0 ||
+            _stricmp(value.data(), "yes") == 0 ||
+            value == "1") {
+            return true;
+        }
+        if (_stricmp(value.data(), "false") == 0 ||
+            _stricmp(value.data(), "no") == 0 ||
+            value == "0") {
+            return false;
+        }
+
+        return std::nullopt;
+    }
+
+    bool ReadBool(
+        const char* key,
+        bool defaultValue)
+    {
+        const auto configured =
+            ReadString(
+                "Behavior",
+                key,
+                defaultValue ? "true" : "false");
+        const auto parsed = ParseBool(configured);
+        if (!parsed) {
+            SKSE::log::warn(
+                "Invalid {} \"{}\"; using {}.",
+                key,
+                configured,
+                defaultValue);
+        }
+
+        return parsed.value_or(defaultValue);
+    }
 }
 
 namespace WMS::Config
@@ -94,10 +134,33 @@ namespace WMS::Config
                 "Invalid OpenSelectorKey \"{}\"; using 0x44 (F10).",
                 configuredKey);
         }
+
+        openMapAfterSelection =
+            ReadBool("OpenMapAfterSelection", true);
+        allowChooserWhileMapOpen =
+            ReadBool("AllowChooserWhileMapOpen", true);
+
+        persistSelection =
+            ReadBool("PersistSelection", true);
     }
 
     std::uint32_t GetOpenSelectorKey()
     {
         return openSelectorKey;
+    }
+
+    bool GetOpenMapAfterSelection()
+    {
+        return openMapAfterSelection;
+    }
+
+    bool GetPersistSelection()
+    {
+        return persistSelection;
+    }
+
+    bool GetAllowChooserWhileMapOpen()
+    {
+        return allowChooserWhileMapOpen;
     }
 }

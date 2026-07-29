@@ -1,4 +1,6 @@
 #include "Diagnostics.h"
+#include "MapChooser.h"
+#include "MapSelection.h"
 #include "WorldspaceOverride.h"
 
 namespace WMS::Diagnostics
@@ -74,6 +76,9 @@ namespace WMS::Diagnostics
                     LogWorldspaceState();
                 } else {
                     WorldspaceOverride::ResetSession();
+                    if (!MapChooser::OnMapMenuClosed()) {
+                        MapSelection::OnMapClosed();
+                    }
                 }
 
                 return RE::BSEventNotifyControl::kContinue;

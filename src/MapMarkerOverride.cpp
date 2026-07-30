@@ -43,6 +43,10 @@ namespace WMS::MapMarkerOverride
         );
         AppendQuestMarkers_t originalAppendQuestMarkers = nullptr;
 
+        using HandleCustomDestinationClick_t = void (*)(RE::MapMenu*);
+        HandleCustomDestinationClick_t originalHandleCustomDestinationClick =
+            nullptr;
+
         void AddCurrentLocationMarkerHook(RE::BSTArray<RE::MapMenuMarker>* mapMarkers, RE::NiPoint3* playerMarkerPosition)
         {
             suppressPlayerMarkerLoop = false;
@@ -135,6 +139,15 @@ namespace WMS::MapMarkerOverride
 
             originalAppendQuestMarkers(mapMarkers, objectives, mapMode);
         }
+
+        void HandleCustomDestinationClickHook(RE::MapMenu* mapMenu)
+        {
+            if (WorldspaceOverride::GetSelectedMapWorldspace()) {
+                return;
+            }
+
+            originalHandleCustomDestinationClick(mapMenu);
+        }
     }
 
     bool Install()
@@ -150,6 +163,9 @@ namespace WMS::MapMarkerOverride
         };
         REL::Relocation<std::uintptr_t> appendQuestMarkers{
             REL::ID(53073)
+        };
+        REL::Relocation<std::uintptr_t> handleCustomDestinationClick{
+            REL::ID(53113)
         };
 
         const auto createCurrentLocationStatus = MH_CreateHook(
@@ -202,6 +218,19 @@ namespace WMS::MapMarkerOverride
             return false;
         }
 
+        const auto createCustomDestinationClickStatus = MH_CreateHook(
+            reinterpret_cast<void*>(handleCustomDestinationClick.address()),
+            reinterpret_cast<void*>(HandleCustomDestinationClickHook),
+            reinterpret_cast<void**>(&originalHandleCustomDestinationClick)
+        );
+        if (createCustomDestinationClickStatus != MH_OK) {
+            SKSE::log::error(
+                "Custom-destination click hook creation failed: {}",
+                static_cast<int>(createCustomDestinationClickStatus)
+            );
+            return false;
+        }
+
         const auto enableCurrentLocationStatus = MH_EnableHook(
             reinterpret_cast<void*>(addCurrentLocationMarker.address())
         );
@@ -245,12 +274,25 @@ namespace WMS::MapMarkerOverride
             return false;
         }
 
+        const auto enableCustomDestinationClickStatus = MH_EnableHook(
+            reinterpret_cast<void*>(handleCustomDestinationClick.address())
+        );
+        if (enableCustomDestinationClickStatus != MH_OK) {
+            SKSE::log::error(
+                "Custom-destination click hook activation failed: {}",
+                static_cast<int>(enableCustomDestinationClickStatus)
+            );
+            return false;
+        }
+
         SKSE::log::info(
-            "Installed MapMenu marker detours at {:X}, {:X}, {:X}, and {:X}.",
+            "Installed MapMenu marker detours at {:X}, {:X}, {:X}, {:X}, "
+            "and {:X}.",
             addCurrentLocationMarker.address(),
             addMarkerFromHandle.address(),
             bindCustomDestinationMarker.address(),
-            appendQuestMarkers.address()
+            appendQuestMarkers.address(),
+            handleCustomDestinationClick.address()
         );
         return true;
     }

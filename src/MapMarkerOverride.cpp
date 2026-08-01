@@ -10,7 +10,7 @@ namespace WMS::MapMarkerOverride
         thread_local RE::BSTArray<RE::ObjectRefHandle>
             selectedMapMarkerHandles;
         thread_local bool suppressPlayerMarkerLoop = false;
-        thread_local bool processingRemoteQuestRoutes = false;
+        thread_local bool processingSelectedMapRoutes = false;
 
         using CollectMapMarkerHandles_t = void (*)(
             RE::TESWorldSpace*,
@@ -60,23 +60,23 @@ namespace WMS::MapMarkerOverride
         RouteEntriesShareRootWorldspace_t
             originalRouteEntriesShareRootWorldspace = nullptr;
 
-        class ScopedRemoteQuestRoutes
+        class ScopedSelectedMapRoutes
         {
         public:
-            ScopedRemoteQuestRoutes() :
-                previousValue(processingRemoteQuestRoutes)
+            ScopedSelectedMapRoutes() :
+                previousValue(processingSelectedMapRoutes)
             {
-                processingRemoteQuestRoutes = true;
+                processingSelectedMapRoutes = true;
             }
 
-            ~ScopedRemoteQuestRoutes()
+            ~ScopedSelectedMapRoutes()
             {
-                processingRemoteQuestRoutes = previousValue;
+                processingSelectedMapRoutes = previousValue;
             }
 
-            ScopedRemoteQuestRoutes(const ScopedRemoteQuestRoutes&) = delete;
-            ScopedRemoteQuestRoutes& operator=(
-                const ScopedRemoteQuestRoutes&) = delete;
+            ScopedSelectedMapRoutes(const ScopedSelectedMapRoutes&) = delete;
+            ScopedSelectedMapRoutes& operator=(
+                const ScopedSelectedMapRoutes&) = delete;
 
         private:
             bool previousValue;
@@ -123,10 +123,6 @@ namespace WMS::MapMarkerOverride
 
             return trimmed;
         }
-
-        using HandleCustomDestinationClick_t = void (*)(RE::MapMenu*);
-        HandleCustomDestinationClick_t originalHandleCustomDestinationClick =
-            nullptr;
 
         void AddCurrentLocationMarkerHook(RE::BSTArray<RE::MapMenuMarker>* mapMarkers, RE::NiPoint3* playerMarkerPosition)
         {
@@ -184,25 +180,16 @@ namespace WMS::MapMarkerOverride
             RE::RefHandle* result,
             RE::BSTArray<RE::MapMenuMarker>* mapMarkers)
         {
-            if (WorldspaceOverride::GetSelectedMapWorldspace() && mapMarkers) {
-                bool suppressed = false;
-
-                for (auto& marker : *mapMarkers) {
-                    if (marker.type == 2 && marker.door == 0) {
-                        marker.ref = 0;
-                        suppressed = true;
-                    }
-                }
-
-                if (suppressed) {
-                    if (result) {
-                        *result = 0;
-                    }
-                    return result;
-                }
+            if (!WorldspaceOverride::GetSelectedMapWorldspace()) {
+                return originalBindCustomDestinationMarker(
+                    result,
+                    mapMarkers);
             }
 
-            return originalBindCustomDestinationMarker(result, mapMarkers);
+            ScopedSelectedMapRoutes guard;
+            return originalBindCustomDestinationMarker(
+                result,
+                mapMarkers);
         }
 
         void AppendQuestMarkersHook(
@@ -219,7 +206,7 @@ namespace WMS::MapMarkerOverride
                 return;
             }
 
-            ScopedRemoteQuestRoutes guard;
+            ScopedSelectedMapRoutes guard;
             originalAppendQuestMarkers(mapMarkers, objectives, mapMode);
         }
 
@@ -230,7 +217,7 @@ namespace WMS::MapMarkerOverride
             std::uint32_t mapMode,
             bool validate)
         {
-            if (!processingRemoteQuestRoutes) {
+            if (!processingSelectedMapRoutes) {
                 return originalResolveRoutedMarkerHandle(
                     result,
                     originalHandle,
@@ -257,7 +244,7 @@ namespace WMS::MapMarkerOverride
 
         bool RouteEntriesShareRootWorldspaceHook(RE::TeleportPath* route)
         {
-            if (!processingRemoteQuestRoutes) {
+            if (!processingSelectedMapRoutes) {
                 return originalRouteEntriesShareRootWorldspace(route);
             }
 
@@ -265,15 +252,6 @@ namespace WMS::MapMarkerOverride
             return trimmed &&
                    originalRouteEntriesShareRootWorldspace(
                        std::addressof(*trimmed));
-        }
-
-        void HandleCustomDestinationClickHook(RE::MapMenu* mapMenu)
-        {
-            if (WorldspaceOverride::GetSelectedMapWorldspace()) {
-                return;
-            }
-
-            originalHandleCustomDestinationClick(mapMenu);
         }
     }
 
@@ -296,9 +274,6 @@ namespace WMS::MapMarkerOverride
         };
         REL::Relocation<std::uintptr_t> routeEntriesShareRootWorldspace{
             REL::ID(53085)
-        };
-        REL::Relocation<std::uintptr_t> handleCustomDestinationClick{
-            REL::ID(53113)
         };
 
         const auto createCurrentLocationStatus = MH_CreateHook(
@@ -379,19 +354,6 @@ namespace WMS::MapMarkerOverride
             return false;
         }
 
-        const auto createCustomDestinationClickStatus = MH_CreateHook(
-            reinterpret_cast<void*>(handleCustomDestinationClick.address()),
-            reinterpret_cast<void*>(HandleCustomDestinationClickHook),
-            reinterpret_cast<void**>(&originalHandleCustomDestinationClick)
-        );
-        if (createCustomDestinationClickStatus != MH_OK) {
-            SKSE::log::error(
-                "Custom-destination click hook creation failed: {}",
-                static_cast<int>(createCustomDestinationClickStatus)
-            );
-            return false;
-        }
-
         const auto enableCurrentLocationStatus = MH_EnableHook(
             reinterpret_cast<void*>(addCurrentLocationMarker.address())
         );
@@ -458,27 +420,15 @@ namespace WMS::MapMarkerOverride
             return false;
         }
 
-        const auto enableCustomDestinationClickStatus = MH_EnableHook(
-            reinterpret_cast<void*>(handleCustomDestinationClick.address())
-        );
-        if (enableCustomDestinationClickStatus != MH_OK) {
-            SKSE::log::error(
-                "Custom-destination click hook activation failed: {}",
-                static_cast<int>(enableCustomDestinationClickStatus)
-            );
-            return false;
-        }
-
         SKSE::log::info(
-            "Installed MapMenu marker detours at {:X}, {:X}, {:X}, {:X}, "
+            "Installed MapMenu marker detours at {:X}, {:X}, {:X}, "
             "{:X}, {:X}, and {:X}.",
             addCurrentLocationMarker.address(),
             addMarkerFromHandle.address(),
             bindCustomDestinationMarker.address(),
             appendQuestMarkers.address(),
             resolveRoutedMarkerHandle.address(),
-            routeEntriesShareRootWorldspace.address(),
-            handleCustomDestinationClick.address()
+            routeEntriesShareRootWorldspace.address()
         );
         return true;
     }

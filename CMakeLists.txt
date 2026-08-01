@@ -23,6 +23,8 @@ find_package(minhook CONFIG REQUIRED)
 
 add_commonlibsse_plugin(
     ${PROJECT_NAME}
+    COMPATIBLE_RUNTIMES
+        1.6.1170
     SOURCES
         src/Config.cpp
         src/Diagnostics.cpp

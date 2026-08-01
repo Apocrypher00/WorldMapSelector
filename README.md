@@ -29,15 +29,21 @@ The currently validated environment is:
 - SKSE `2.2.6`
 - Address Library database for runtime `1.6.1170`
 
-The project currently builds for the Anniversary Edition runtime family.
-Pre-1.6 Special Edition runtimes, Skyrim VR, GOG, and other executable versions
-have not been tested and should not be assumed compatible.
+The distributed plugin is intentionally restricted to runtime `1.6.1170` in
+its SKSE plugin metadata. The project builds against the Anniversary Edition
+runtime family, but other executable versions remain unsupported until their
+Address Library IDs, function interfaces, and in-game behavior are verified.
+Pre-1.6 Special Edition runtimes, Skyrim VR, GOG, and other Anniversary
+Edition runtimes should not be assumed compatible.
 
 ## Requirements
 
 - [SKSE64](https://skse.silverlock.org/) matching the installed Skyrim runtime
 - [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
 - Microsoft Visual C++ 2015-2022 Redistributable (x64)
+
+CommonLibSSE NG and MinHook are linked into the plugin; users do not install
+them separately.
 
 ## Installation
 
@@ -102,8 +108,6 @@ Behavior settings reload whenever the chooser opens. Changing
 
 ## Known Issues
 
-- Custom map destinations can be created, moved, and removed on a remote map,
-  but their display does not consistently refresh while that map remains open.
 - Only Steam runtime `1.6.1170` has received substantial testing so far.
 - Compatibility with heavily modified map interfaces needs broader testing.
 
@@ -155,3 +159,28 @@ If the repository was cloned without submodules:
 ```powershell
 git submodule update --init --recursive
 ```
+
+## Dependencies and acknowledgements
+
+WorldMapSelector depends at runtime on SKSE64 and Address Library for SKSE
+Plugins. Development is built on
+[CommonLibSSE NG](https://github.com/alandtse/CommonLibVR), including the work
+of the original CommonLibSSE and CommonLibSSE-NG contributors, and uses
+[MinHook](https://github.com/TsudaKageyu/minhook) for whole-function detours.
+
+The pinned build also uses the following libraries through vcpkg and
+CommonLibSSE NG:
+
+- [fmt](https://github.com/fmtlib/fmt)
+- [spdlog](https://github.com/gabime/spdlog)
+- [Xbyak](https://github.com/herumi/xbyak)
+- [rapidcsv](https://github.com/d99kris/rapidcsv)
+- [SimpleIni](https://github.com/brofield/simpleini)
+- [toml11](https://github.com/ToruNiina/toml11)
+- [JSON for Modern C++](https://github.com/nlohmann/json)
+- [DirectXMath](https://github.com/microsoft/DirectXMath)
+- [DirectX Tool Kit](https://github.com/microsoft/DirectXTK)
+
+The project is configured and built with CMake, Ninja, vcpkg, and Microsoft
+Visual C++. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for license
+and attribution information.

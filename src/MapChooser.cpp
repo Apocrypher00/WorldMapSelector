@@ -12,7 +12,7 @@ namespace WMS::MapChooser
 
         enum class ActionType
         {
-            kDefault,
+            kClearSelection,
             kSelectMap,
             kPreviousPage,
             kNextPage,
@@ -77,7 +77,8 @@ namespace WMS::MapChooser
         std::string MakeButtonLabel(
             const WorldspaceCatalog::MapOption& option,
             const std::vector<WorldspaceCatalog::MapOption>& options,
-            RE::TESWorldSpace* currentMap)
+            RE::TESWorldSpace* currentMap,
+            RE::TESWorldSpace* selectedMap)
         {
             auto label = option.displayName;
 
@@ -96,8 +97,17 @@ namespace WMS::MapChooser
                     option.editorID);
             }
 
-            if (option.worldspace == currentMap) {
-                label += " [Current]";
+            const bool isHere =
+                option.worldspace == currentMap;
+            const bool isSelected =
+                option.worldspace == selectedMap;
+
+            if (isHere && isSelected) {
+                label += " [Here/Selected]";
+            } else if (isHere) {
+                label += " [Here]";
+            } else if (isSelected) {
+                label += " [Selected]";
             }
 
             return label;
@@ -172,13 +182,13 @@ namespace WMS::MapChooser
         void HandleAction(const Action& action)
         {
             switch (action.type) {
-            case ActionType::kDefault:
+            case ActionType::kClearSelection:
                 MapSelection::SelectDefault();
                 RE::SendHUDMessage::ShowHUDMessage(
-                    "World map selected: Default");
+                    "World map selection cleared.");
                 SKSE::log::info(
-                    "Map chooser selected Default.");
-                ApplyFlowAfterChoice();
+                    "Map chooser cleared the map selection.");
+                ConsumeFlow();
                 break;
 
             case ActionType::kSelectMap:
@@ -284,9 +294,13 @@ namespace WMS::MapChooser
             auto* currentMap =
                 WorldspaceCatalog::GetMapOwner(
                     GetCurrentWorldspace());
+            auto* selectedMap =
+                WorldspaceCatalog::GetMapOwner(
+                    MapSelection::GetSelectedWorldspace());
             const auto options =
                 WorldspaceCatalog::GetOrderedOptions(
-                    currentMap);
+                    currentMap,
+                    selectedMap);
             if (options.empty()) {
                 RE::SendHUDMessage::ShowHUDMessage(
                     "WorldMapSelector found no selectable maps.");
@@ -310,9 +324,9 @@ namespace WMS::MapChooser
             std::vector<Action> actions;
 
             if (page == 0) {
-                buttons.emplace_back("Default");
+                buttons.emplace_back("[Clear Selection]");
                 actions.push_back({
-                    .type = ActionType::kDefault
+                    .type = ActionType::kClearSelection
                 });
             }
 
@@ -330,14 +344,12 @@ namespace WMS::MapChooser
                     MakeButtonLabel(
                         option,
                         options,
-                        currentMap);
+                        currentMap,
+                        selectedMap);
 
                 buttons.push_back(label);
                 actions.push_back({
-                    .type =
-                        option.worldspace == currentMap
-                            ? ActionType::kDefault
-                            : ActionType::kSelectMap,
+                    .type = ActionType::kSelectMap,
                     .worldspace = option.worldspace,
                     .displayName = option.displayName
                 });
@@ -427,20 +439,39 @@ namespace WMS::MapChooser
 
                 const auto configuredKey =
                     Config::GetOpenSelectorKey();
-                if (configuredKey == 0) {
-                    return RE::BSEventNotifyControl::kContinue;
-                }
 
                 for (auto* event = *events;
                      event;
                      event = event->next) {
                     const auto* button =
                         event->AsButtonEvent();
-                    if (button &&
-                        button->device ==
-                            RE::INPUT_DEVICE::kKeyboard &&
-                        button->GetIDCode() == configuredKey &&
-                        button->IsDown()) {
+                    if (!button ||
+                        button->device !=
+                            RE::INPUT_DEVICE::kKeyboard ||
+                        !button->IsDown()) {
+                        continue;
+                    }
+
+                    if (button->GetIDCode() == 0x01) {
+                        std::optional<std::int32_t> cancelIndex;
+                        {
+                            std::scoped_lock lock(actionsLock);
+                            if (!pendingActions.empty() &&
+                                pendingActions.back().type ==
+                                    ActionType::kCancel) {
+                                cancelIndex = static_cast<std::int32_t>(
+                                    pendingActions.size() - 1);
+                            }
+                        }
+
+                        if (cancelIndex) {
+                            RE::MessageBoxMenu::SelectOption(*cancelIndex);
+                            return RE::BSEventNotifyControl::kStop;
+                        }
+                    }
+
+                    if (configuredKey != 0 &&
+                        button->GetIDCode() == configuredKey) {
                         Open();
                         break;
                     }

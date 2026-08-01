@@ -58,8 +58,12 @@ Launch Skyrim through SKSE.
 
 Press `F10` to open the map chooser.
 
-- `Default` restores Skyrim's normal map selection.
-- The current map is marked `[Current]`.
+- `[Clear Selection]` restores Skyrim's automatic map selection.
+- The map containing the player is marked `[Here]`.
+- An explicitly selected map is marked `[Selected]`.
+- When both are the same, the map is marked `[Here/Selected]`.
+- Selecting the map marked `[Here]` stores it as an explicit selection; this
+  allows that map to remain selected after the player travels elsewhere.
 - Selecting a map can open it immediately.
 - Pressing `F10` while MapMenu is open displays the chooser over the map.
 - Selecting a different map while MapMenu is open closes and rebuilds MapMenu

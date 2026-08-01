@@ -144,7 +144,8 @@ namespace WMS::WorldspaceCatalog
     }
 
     std::vector<MapOption> GetOrderedOptions(
-        RE::TESWorldSpace* currentWorldspace)
+        RE::TESWorldSpace* currentWorldspace,
+        RE::TESWorldSpace* selectedWorldspace)
     {
         std::shared_lock lock(entriesLock);
         auto result = entries;
@@ -166,18 +167,36 @@ namespace WMS::WorldspaceCatalog
                            right.editorID.c_str()) < 0;
             });
 
-        auto* currentMap = ResolveMapOwner(currentWorldspace);
-        if (currentMap) {
-            const auto current = std::ranges::find(
-                result,
-                currentMap,
-                &MapOption::worldspace);
-            if (current != result.end()) {
-                std::rotate(
-                    result.begin(),
-                    current,
-                    std::next(current));
-            }
+        const auto moveToIndex =
+            [&](RE::TESWorldSpace* worldspace, std::size_t index) {
+                if (!worldspace || index >= result.size()) {
+                    return;
+                }
+
+                const auto destination =
+                    std::next(result.begin(), index);
+                const auto option = std::find_if(
+                    destination,
+                    result.end(),
+                    [&](const auto& candidate) {
+                        return candidate.worldspace == worldspace;
+                    });
+                if (option != result.end()) {
+                    std::rotate(
+                        destination,
+                        option,
+                        std::next(option));
+                }
+            };
+
+        auto* currentMap =
+            ResolveMapOwner(currentWorldspace);
+        auto* selectedMap =
+            ResolveMapOwner(selectedWorldspace);
+
+        moveToIndex(currentMap, 0);
+        if (selectedMap != currentMap) {
+            moveToIndex(selectedMap, currentMap ? 1 : 0);
         }
 
         return result;

@@ -20,6 +20,7 @@ namespace WMS::WorldspaceCatalog
     void Build();
     RE::TESWorldSpace* GetMapOwner(RE::TESWorldSpace* worldspace);
     std::vector<MapOption> GetOrderedOptions(
-        RE::TESWorldSpace* currentWorldspace);
+        RE::TESWorldSpace* currentWorldspace,
+        RE::TESWorldSpace* selectedWorldspace);
     SelectionResult ResolveSelection(std::string_view identifier);
 }

@@ -103,8 +103,8 @@ PersistSelection=true
 AllowChooserWhileMapOpen=true
 ```
 
-Behavior settings reload whenever the chooser opens. Changing
-`OpenSelectorKey` requires restarting Skyrim.
+Configuration is loaded once when the plugin starts. Restart Skyrim after
+changing any INI setting.
 
 ## Known Issues
 
@@ -150,8 +150,8 @@ The output is written beneath:
 out/build/x64-Release/
 ```
 
-The `x64-Release` preset currently uses `RelWithDebInfo`. Dependencies are
-resolved through the checked-in `vcpkg.json` manifest using the
+The `x64-Release` preset produces an optimized `Release` build. Dependencies
+are resolved through the checked-in `vcpkg.json` manifest using the
 `x64-windows-static-md` triplet.
 
 If the repository was cloned without submodules:

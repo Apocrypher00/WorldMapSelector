@@ -393,8 +393,6 @@ namespace WMS::MapChooser
 
         void Open()
         {
-            Config::Load();
-
             auto* player =
                 RE::PlayerCharacter::GetSingleton();
             auto* ui = RE::UI::GetSingleton();

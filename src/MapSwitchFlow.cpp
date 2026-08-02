@@ -29,31 +29,38 @@ namespace WMS::MapSwitchFlow
             return result;
         }
 
-        void OpenSelectedMap()
+        bool QueueSelectedMapOpen()
         {
             // UI messages are queued onto Skyrim's task thread instead of
             // changing menus directly from an input or message-box callback.
             auto* tasks = SKSE::GetTaskInterface();
             if (!tasks) {
-                SKSE::log::error(
-                    "Could not queue the selected world map to open.");
-                return;
+                return false;
             }
 
+            SKSE::log::debug("Queued MapMenu to open after map selection.");
             tasks->AddTask([] {
+                SKSE::log::trace("Sending MapMenu show message.");
                 if (auto* queue =
                         RE::UIMessageQueue::GetSingleton()) {
                     queue->AddMessage(
                         RE::MapMenu::MENU_NAME,
                         RE::UI_MESSAGE_TYPE::kShow,
                         nullptr);
+                } else {
+                    SKSE::log::error(
+                        "Could not get the UI message queue to open MapMenu.");
                 }
             });
+            return true;
         }
     }
 
     void ConfigureOutsideMap(bool openAfterChoice)
     {
+        SKSE::log::debug(
+            "Configured chooser outside MapMenu: openAfterChoice={}.",
+            openAfterChoice);
         Configure(
             openAfterChoice
                 ? FlowMode::kOpenAfterChoice
@@ -63,11 +70,14 @@ namespace WMS::MapSwitchFlow
 
     void ConfigureInsideMap()
     {
+        SKSE::log::debug(
+            "Configured chooser to replace the open MapMenu after selection.");
         Configure(FlowMode::kSwitchOpenMap);
     }
 
     void Cancel()
     {
+        SKSE::log::debug("Cancelled pending map chooser flow.");
         Consume();
     }
 
@@ -75,10 +85,17 @@ namespace WMS::MapSwitchFlow
     {
         switch (Consume()) {
         case FlowMode::kOpenAfterChoice:
-            OpenSelectedMap();
+            SKSE::log::debug(
+                "Map choice completed; opening MapMenu.");
+            if (!QueueSelectedMapOpen()) {
+                SKSE::log::error(
+                    "Could not queue the selected world map to open.");
+            }
             break;
 
         case FlowMode::kSwitchOpenMap:
+            SKSE::log::debug(
+                "Map choice completed; closing MapMenu before reopening it.");
             {
                 std::scoped_lock lock(flowLock);
                 reopenAfterMapClose = true;
@@ -97,6 +114,8 @@ namespace WMS::MapSwitchFlow
             break;
 
         case FlowMode::kNone:
+            SKSE::log::trace(
+                "Map choice completed with no pending menu action.");
             break;
         }
     }
@@ -111,10 +130,9 @@ namespace WMS::MapSwitchFlow
             reopenAfterMapClose = false;
         }
 
-        if (auto* tasks = SKSE::GetTaskInterface()) {
-            tasks->AddTask([] {
-                OpenSelectedMap();
-            });
+        SKSE::log::debug(
+            "MapMenu closed during a map switch; scheduling its replacement.");
+        if (QueueSelectedMapOpen()) {
             return true;
         }
 

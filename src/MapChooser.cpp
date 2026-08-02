@@ -406,6 +406,13 @@ namespace WMS::MapChooser
                 return;
             }
 
+            // Never replace another message box's buttons or callback state.
+            // This includes fast-travel confirmations and custom-marker menus
+            // displayed over MapMenu.
+            if (ui->IsMenuOpen(RE::MessageBoxMenu::MENU_NAME)) {
+                return;
+            }
+
             if (ui->IsMenuOpen(RE::MapMenu::MENU_NAME)) {
                 if (!Config::GetAllowChooserWhileMapOpen()) {
                     return;
@@ -417,8 +424,7 @@ namespace WMS::MapChooser
             }
 
             if (ui->GameIsPaused() ||
-                ui->IsModalMenuOpen() ||
-                ui->IsMenuOpen(RE::MessageBoxMenu::MENU_NAME)) {
+                ui->IsModalMenuOpen()) {
                 return;
             }
 

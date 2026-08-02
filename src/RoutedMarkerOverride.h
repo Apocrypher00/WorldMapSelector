@@ -2,6 +2,6 @@
 
 namespace WMS::RoutedMarkerOverride
 {
-    // Creates and enables the quest/custom-destination route detours.
-    bool Install();
+    // Creates the quest/custom-destination route detours in a disabled state.
+    bool CreateHooks();
 }

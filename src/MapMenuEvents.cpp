@@ -49,14 +49,8 @@ namespace WMS::MapMenuEvents
         };
     }
 
-    bool Register()
+    void Register(RE::UI* ui)
     {
-        auto* ui = RE::UI::GetSingleton();
-        if (!ui) {
-            SKSE::log::error("Could not get the UI singleton.");
-            return false;
-        }
-
         // A function-local static is constructed once and lives until the DLL
         // unloads. Skyrim therefore never retains a pointer to a dead sink.
         static MenuEventSink menuEventSink;
@@ -64,6 +58,5 @@ namespace WMS::MapMenuEvents
         // & obtains the sink object's address because AddEventSink expects a pointer.
         ui->AddEventSink<RE::MenuOpenCloseEvent>(&menuEventSink);
         SKSE::log::info("Registered MapMenu event listener.");
-        return true;
     }
 }

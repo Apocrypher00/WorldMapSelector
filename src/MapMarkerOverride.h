@@ -2,6 +2,6 @@
 
 namespace WMS::MapMarkerOverride
 {
-    // Creates and enables the ordinary world-marker detours.
-    bool Install();
+    // Creates the ordinary world-marker detours in a disabled state.
+    bool CreateHooks();
 }

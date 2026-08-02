@@ -2,7 +2,7 @@
 
 namespace WMS::WorldspaceOverride
 {
-    bool Install();
+    bool CreateHook();
     void BeginSession();
     void ResetSession();
     RE::TESWorldSpace* GetActualMapWorldspace();

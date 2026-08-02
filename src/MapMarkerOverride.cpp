@@ -93,7 +93,7 @@ namespace WMS::MapMarkerOverride
         }
     }
 
-    bool Install()
+    bool CreateHooks()
     {
         REL::Relocation<std::uintptr_t> addCurrentLocationMarker{
             REL::ID(53076)
@@ -126,28 +126,8 @@ namespace WMS::MapMarkerOverride
             return false;
         }
 
-        const auto enableCurrentLocationStatus = MH_EnableHook(
-            reinterpret_cast<void*>(addCurrentLocationMarker.address())
-        );
-        if (enableCurrentLocationStatus != MH_OK) {
-            SKSE::log::error(
-                "Current-location marker hook activation failed: {}",
-                static_cast<int>(enableCurrentLocationStatus));
-            return false;
-        }
-
-        const auto enableMarkerStatus = MH_EnableHook(
-            reinterpret_cast<void*>(addMarkerFromHandle.address())
-        );
-        if (enableMarkerStatus != MH_OK) {
-            SKSE::log::error(
-                "Marker-from-handle hook activation failed: {}",
-                static_cast<int>(enableMarkerStatus));
-            return false;
-        }
-
         SKSE::log::info(
-            "Installed ordinary MapMenu marker detours at {:X} and {:X}.",
+            "Created ordinary MapMenu marker detours at {:X} and {:X}.",
             addCurrentLocationMarker.address(),
             addMarkerFromHandle.address()
         );

@@ -168,7 +168,7 @@ namespace WMS::RoutedMarkerOverride
         }
     }
 
-    bool Install()
+    bool CreateHooks()
     {
         REL::Relocation<std::uintptr_t> bindCustomDestinationMarker{ REL::ID(53078) };
         REL::Relocation<std::uintptr_t> appendQuestMarkers{ REL::ID(53073) };
@@ -223,48 +223,8 @@ namespace WMS::RoutedMarkerOverride
             return false;
         }
 
-        const auto enableCustomDestinationStatus = MH_EnableHook(
-            reinterpret_cast<void*>(bindCustomDestinationMarker.address())
-        );
-        if (enableCustomDestinationStatus != MH_OK) {
-            SKSE::log::error(
-                "Custom-destination marker hook activation failed: {}",
-                static_cast<int>(enableCustomDestinationStatus));
-            return false;
-        }
-
-        const auto enableQuestMarkersStatus = MH_EnableHook(
-            reinterpret_cast<void*>(appendQuestMarkers.address())
-        );
-        if (enableQuestMarkersStatus != MH_OK) {
-            SKSE::log::error(
-                "Quest-marker hook activation failed: {}",
-                static_cast<int>(enableQuestMarkersStatus));
-            return false;
-        }
-
-        const auto enableResolveRoutedMarkerStatus = MH_EnableHook(
-            reinterpret_cast<void*>(resolveRoutedMarkerHandle.address())
-        );
-        if (enableResolveRoutedMarkerStatus != MH_OK) {
-            SKSE::log::error(
-                "Routed-marker resolver hook activation failed: {}",
-                static_cast<int>(enableResolveRoutedMarkerStatus));
-            return false;
-        }
-
-        const auto enableRouteRootStatus = MH_EnableHook(
-            reinterpret_cast<void*>(routeEntriesShareRootWorldspace.address())
-        );
-        if (enableRouteRootStatus != MH_OK) {
-            SKSE::log::error(
-                "Route-root comparison hook activation failed: {}",
-                static_cast<int>(enableRouteRootStatus));
-            return false;
-        }
-
         SKSE::log::info(
-            "Installed routed MapMenu marker detours at {:X}, {:X}, {:X}, and {:X}.",
+            "Created routed MapMenu marker detours at {:X}, {:X}, {:X}, and {:X}.",
             bindCustomDestinationMarker.address(),
             appendQuestMarkers.address(),
             resolveRoutedMarkerHandle.address(),

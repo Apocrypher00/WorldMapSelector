@@ -1,12 +1,11 @@
 #include "Config.h"
+#include "Hooks.h"
 #include "MapChooser.h"
 #include "MapMenuEvents.h"
 #include "MapMarkerOverride.h"
 #include "RoutedMarkerOverride.h"
 #include "WorldspaceCatalog.h"
 #include "WorldspaceOverride.h"
-
-#include <MinHook.h>
 
 namespace
 {
@@ -40,38 +39,38 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
     // Read all settings once for this game process.
     WMS::Config::Load();
 
-    // Initialize the hooking library once before any override module creates
-    // its detours.
-    const auto minHookStatus = MH_Initialize();
-    if (minHookStatus != MH_OK &&
-        minHookStatus != MH_ERROR_ALREADY_INITIALIZED) {
-        SKSE::log::error(
-            "MinHook initialization failed: {}",
-            static_cast<int>(minHookStatus));
+    // Resolve every interface needed after hook activation before changing any game function.
+    auto* messaging = SKSE::GetMessagingInterface();
+    auto* ui = RE::UI::GetSingleton();
+    if (!messaging || !ui) {
+        SKSE::log::error("Could not obtain the required SKSE/UI interfaces.");
         return false;
     }
 
-    // Install the resolver detour.
-    // If Install() returns false, the detour could not be created/enabled, so stop initialization and report failure to SKSE.
-    if (!WMS::WorldspaceOverride::Install()) { return false; }
+    if (!WMS::Hooks::Initialize()) { return false; }
 
-    // Install the two ordinary marker detours.
-    if (!WMS::MapMarkerOverride::Install()) { return false; }
+    // Create every detour in a disabled state.
+    // If any creation fails, Reset removes all previously created hooks before SKSE rejects the plugin.
+    if (!WMS::WorldspaceOverride::CreateHook() || !WMS::MapMarkerOverride::CreateHooks() || !WMS::RoutedMarkerOverride::CreateHooks()) {
+        WMS::Hooks::Reset();
+        return false;
+    }
 
-    // Install the four routed quest/custom-destination marker detours.
-    if (!WMS::RoutedMarkerOverride::Install()) { return false; }
+    if (!WMS::Hooks::EnableAll()) {
+        WMS::Hooks::Reset();
+        return false;
+    }
 
     // RegisterListener stores OnSKSEMessage as the callback SKSE will invoke.
-    // auto* asks C++ to infer the pointer type returned by this function.
-    auto* messaging = SKSE::GetMessagingInterface();
-    if (!messaging || !messaging->RegisterListener(OnSKSEMessage)) {
+    if (!messaging->RegisterListener(OnSKSEMessage)) {
         SKSE::log::error("Could not register the SKSE message listener.");
+        WMS::Hooks::Reset();
         return false;
     }
 
     // Subscribe to MapMenu open/close events.
     // These events freeze and clear the selected-map session and coordinate close/reopen map switches.
-    if (!WMS::MapMenuEvents::Register()) { return false; }
+    WMS::MapMenuEvents::Register(ui);
 
     // All required initialization above completed without returning false.
     SKSE::log::info("WorldMapSelector loaded successfully.");

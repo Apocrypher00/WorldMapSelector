@@ -153,7 +153,7 @@ namespace WMS::WorldspaceOverride
         }
     }
 
-    bool Install()
+    bool CreateHook()
     {
         // Address Library assigns different stable IDs to the equivalent SE
         // and AE resolver functions. This build currently enables AE only.
@@ -177,17 +177,8 @@ namespace WMS::WorldspaceOverride
             return false;
         }
 
-        const auto enableStatus =
-            MH_EnableHook(reinterpret_cast<void*>(resolver.address()));
-        if (enableStatus != MH_OK) {
-            SKSE::log::error(
-                "Resolver hook activation failed: {}",
-                static_cast<int>(enableStatus));
-            return false;
-        }
-
         SKSE::log::info(
-            "Installed WMS_ResolveMapWorldSpace detour at {:X}.",
+            "Created WMS_ResolveMapWorldSpace detour at {:X}.",
             resolver.address());
         return true;
     }

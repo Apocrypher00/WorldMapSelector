@@ -29,6 +29,8 @@ add_commonlibsse_plugin(
     SOURCES
         src/Config.cpp
         src/Diagnostics.cpp
+        src/Hooks.cpp
+        src/Hooks.h
         src/MapChooser.cpp
         src/MapMenuEvents.cpp
         src/MapMarkerOverride.cpp

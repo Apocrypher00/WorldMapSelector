@@ -12,18 +12,9 @@ namespace WMS::WorldspaceCatalog
         std::string pluginName;
     };
 
-    struct SelectionResult
-    {
-        // Exactly one useful outcome is expected: isDefault, worldspace, or error.
-        RE::TESWorldSpace* worldspace = nullptr;
-        bool isDefault = false;
-        std::string error;
-    };
-
     void Build();
     RE::TESWorldSpace* GetMapOwner(RE::TESWorldSpace* worldspace);
     std::vector<MapOption> GetOrderedOptions(
         RE::TESWorldSpace* currentWorldspace,
         RE::TESWorldSpace* selectedWorldspace);
-    SelectionResult ResolveSelection(std::string_view identifier);
 }

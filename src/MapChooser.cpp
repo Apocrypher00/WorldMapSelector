@@ -314,6 +314,7 @@ namespace WMS::MapChooser
             auto* selectedMap  = WorldspaceCatalog::GetMapOwner(MapSelection::GetSelectedWorldspace());
             const auto options = WorldspaceCatalog::GetOrderedOptions(currentMap, selectedMap);
             if (options.empty()) {
+                ConsumeFlow();
                 RE::SendHUDMessage::ShowHUDMessage("WorldMapSelector found no selectable maps.");
                 return;
             }

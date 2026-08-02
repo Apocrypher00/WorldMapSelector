@@ -1,7 +1,5 @@
 #include "WorldspaceCatalog.h"
-#include "Utilities.h"
 
-#include <charconv>
 #include <shared_mutex>
 
 namespace WMS::WorldspaceCatalog
@@ -12,18 +10,6 @@ namespace WMS::WorldspaceCatalog
         // readers. shared_mutex permits multiple readers but only one writer.
         std::vector<MapOption> entries;
         std::shared_mutex entriesLock;
-
-        std::string_view Trim(std::string_view value)
-        {
-            const auto first = value.find_first_not_of(" \t\r\n");
-            if (first == std::string_view::npos) {
-                return {};
-            }
-
-            const auto last = value.find_last_not_of(" \t\r\n");
-            // substr returns another non-owning view into the original text.
-            return value.substr(first, last - first + 1);
-        }
 
         // Convert Skyrim's borrowed C string into an owned std::string.
         std::string SafeText(const char* text, std::string_view fallback)
@@ -59,30 +45,6 @@ namespace WMS::WorldspaceCatalog
             const auto& map = worldspace->worldMapData;
             return map.nwCellX != map.seCellX ||
                    map.nwCellY != map.seCellY;
-        }
-
-        std::optional<RE::FormID> ParseRuntimeFormID(std::string_view text)
-        {
-            text = Trim(text);
-            if (text.starts_with("0x") || text.starts_with("0X")) {
-                text.remove_prefix(2);
-            }
-
-            RE::FormID value = 0;
-            // Structured binding assigns the two fields returned by from_chars to the local names end and error.
-            // Base 16 treats the text as hex.
-            const auto [end, error] = std::from_chars(
-                text.data(),
-                text.data() + text.size(),
-                value,
-                16);
-
-            if (error != std::errc{} ||
-                end != text.data() + text.size()) {
-                return std::nullopt;
-            }
-
-            return value;
         }
 
     }
@@ -183,9 +145,9 @@ namespace WMS::WorldspaceCatalog
         // Capture [&] lets this lambda use result by reference. It moves a
         // requested worldspace to index without disturbing more items than necessary.
         const auto moveToIndex =
-            [&](RE::TESWorldSpace* worldspace, std::size_t index) {
+            [&](RE::TESWorldSpace* worldspace, std::size_t index) -> bool {
                 if (!worldspace || index >= result.size()) {
-                    return;
+                    return false;
                 }
 
                 // next advances an iterator; find_if searches from that point;
@@ -203,7 +165,10 @@ namespace WMS::WorldspaceCatalog
                         destination,
                         option,
                         std::next(option));
+                    return true;
                 }
+
+                return false;
             };
 
         auto* currentMap =
@@ -214,66 +179,11 @@ namespace WMS::WorldspaceCatalog
         // Keep the useful status entries first; the remaining entries retain
         // the case-insensitive alphabetical ordering established above.
 
-        moveToIndex(currentMap, 0);
+        const bool currentWasMoved = moveToIndex(currentMap, 0);
         if (selectedMap != currentMap) {
-            moveToIndex(selectedMap, currentMap ? 1 : 0);
+            moveToIndex(selectedMap, currentWasMoved ? 1 : 0);
         }
 
         return result;
-    }
-
-    SelectionResult ResolveSelection(std::string_view identifier)
-    {
-        identifier = Trim(identifier);
-
-        if (identifier.empty() ||
-            Utilities::EqualsIgnoreCase(identifier, "Default")) {
-            return { .isDefault = true };
-        }
-
-        std::shared_lock lock(entriesLock);
-
-        // This if-with-initializer keeps formID scoped to the numeric lookup.
-        // optional converts to true only when parsing produced a value.
-        if (const auto formID = ParseRuntimeFormID(identifier)) {
-            for (const auto& entry : entries) {
-                // * extracts the value stored inside the optional.
-                if (entry.worldspace->GetFormID() == *formID) {
-                    return { .worldspace = entry.worldspace };
-                }
-            }
-
-            return {
-                .error = fmt::format(
-                    "FormID {:08X} is not a selectable map.",
-                    *formID)
-            };
-        }
-
-        RE::TESWorldSpace* match = nullptr;
-        for (const auto& entry : entries) {
-            if (!entry.editorID.empty() &&
-                Utilities::EqualsIgnoreCase(entry.editorID, identifier)) {
-                if (match) {
-                    return {
-                        .error = fmt::format(
-                            "EditorID \"{}\" is ambiguous; use "
-                            "its runtime FormID.",
-                            identifier)
-                    };
-                }
-                match = entry.worldspace;
-            }
-        }
-
-        if (!match) {
-            return {
-                .error = fmt::format(
-                    "EditorID \"{}\" is not a selectable map.",
-                    identifier)
-            };
-        }
-
-        return { .worldspace = match };
     }
 }

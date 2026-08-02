@@ -1,6 +1,8 @@
+#include "ClassicMessageBox.h"
 #include "Config.h"
 #include "MapChooser.h"
 #include "MapSelection.h"
+#include "MapSwitchFlow.h"
 #include "Utilities.h"
 #include "WorldspaceCatalog.h"
 #include "WorldspaceOverride.h"
@@ -24,15 +26,6 @@ namespace WMS::MapChooser
             kCancel
         };
 
-        // The same chooser can be opened independently or over MapMenu.
-        // Remember what should happen only after a map button is chosen.
-        enum class FlowMode
-        {
-            kNone,
-            kOpenAfterChoice,
-            kSwitchOpenMap
-        };
-
         // One Action records what a particular message-box button should do.
         struct Action
         {
@@ -46,12 +39,6 @@ namespace WMS::MapChooser
         // matching actions until the callback arrives.
         std::mutex actionsLock;
         std::vector<Action> pendingActions;
-
-        // Map switching is asynchronous: close the old MapMenu, wait for its
-        // close event, and only then open a freshly initialized replacement.
-        std::mutex flowLock;
-        FlowMode flowMode = FlowMode::kNone;
-        bool reopenAfterMapClose = false;
 
         // Return the most authoritative available source, falling back as needed.
         RE::TESWorldSpace* GetCurrentWorldspace()
@@ -115,77 +102,6 @@ namespace WMS::MapChooser
         // Forward declaration: HandleAction uses ShowPage before its full definition appears later in this file.
         void ShowPage(std::size_t page);
 
-        void ConfigureFlow(FlowMode mode)
-        {
-            std::scoped_lock lock(flowLock);
-            flowMode = mode;
-        }
-
-        FlowMode ConsumeFlow()
-        {
-            std::scoped_lock lock(flowLock);
-            const auto result = flowMode;
-            flowMode = FlowMode::kNone;
-            // Return the previous mode while leaving the stored mode reset.
-            return result;
-        }
-
-        void OpenSelectedMap()
-        {
-            // UI messages are queued onto Skyrim's task thread instead of
-            // changing menus directly from an input or message-box callback.
-            auto* tasks = SKSE::GetTaskInterface();
-            if (!tasks) {
-                SKSE::log::error(
-                    "Could not queue the selected world map to open.");
-                return;
-            }
-
-            // [] introduces a lambda with no captured variables. SKSE executes
-            // this function later on its task thread.
-            tasks->AddTask([] {
-                if (auto* queue =
-                        RE::UIMessageQueue::GetSingleton()) {
-                    queue->AddMessage(
-                        RE::MapMenu::MENU_NAME,
-                        RE::UI_MESSAGE_TYPE::kShow,
-                        nullptr);
-                }
-            });
-        }
-
-        void ApplyFlowAfterChoice()
-        {
-            // switch compares one enum value and executes its matching case.
-            switch (ConsumeFlow()) {
-            case FlowMode::kOpenAfterChoice:
-                OpenSelectedMap();
-                break;
-
-            case FlowMode::kSwitchOpenMap:
-                // Braces give this case its own scope for the lock variable.
-                {
-                    std::scoped_lock lock(flowLock);
-                    reopenAfterMapClose = true;
-                }
-
-                if (auto* queue =
-                        RE::UIMessageQueue::GetSingleton()) {
-                    queue->AddMessage(
-                        RE::MapMenu::MENU_NAME,
-                        RE::UI_MESSAGE_TYPE::kHide,
-                        nullptr);
-                } else {
-                    std::scoped_lock lock(flowLock);
-                    reopenAfterMapClose = false;
-                }
-                break;
-
-            case FlowMode::kNone:
-                break;
-            }
-        }
-
         void HandleAction(const Action& action)
         {
             // const Action& borrows the existing action without copying it and
@@ -197,7 +113,7 @@ namespace WMS::MapChooser
                     "World map selection cleared.");
                 SKSE::log::info(
                     "Map chooser cleared the map selection.");
-                ConsumeFlow();
+                MapSwitchFlow::Cancel();
                 break;
 
             case ActionType::kSelectMap:
@@ -214,7 +130,7 @@ namespace WMS::MapChooser
                     action.worldspace
                         ? action.worldspace->GetFormID()
                         : 0);
-                ApplyFlowAfterChoice();
+                MapSwitchFlow::ApplyAfterChoice();
                 break;
 
             case ActionType::kPreviousPage:
@@ -223,7 +139,7 @@ namespace WMS::MapChooser
                 break;
 
             case ActionType::kCancel:
-                ConsumeFlow();
+                MapSwitchFlow::Cancel();
                 break;
             }
         }
@@ -248,73 +164,13 @@ namespace WMS::MapChooser
             }
         }
 
-        bool OpenClassicMessageBox(const char* message, const std::vector<std::string>& buttons)
-        {
-            // This lambda converts an owned std::string to the const char* expected by Skyrim.
-            // The vector keeps those strings alive here.
-            const auto button = [&](std::size_t index) {
-                return buttons[index].c_str();
-            };
-
-            // Skyrim's Create function is variadic, so C++ must make a separate call for every supported button count.
-            switch (buttons.size()) {
-                case 1:
-                    return RE::MessageBoxMenu::Create(
-                        message, OnMessageBoxResult, 0, 0, 10,
-                        button(0)
-                    );
-                case 2:
-                    return RE::MessageBoxMenu::Create(
-                        message, OnMessageBoxResult, 0, 0, 10,
-                        button(0), button(1)
-                    );
-                case 3:
-                    return RE::MessageBoxMenu::Create(
-                        message, OnMessageBoxResult, 0, 0, 10,
-                        button(0), button(1), button(2)
-                    );
-                case 4:
-                    return RE::MessageBoxMenu::Create(
-                        message, OnMessageBoxResult, 0, 0, 10,
-                        button(0), button(1), button(2), button(3)
-                    );
-                case 5:
-                    return RE::MessageBoxMenu::Create(
-                        message, OnMessageBoxResult, 0, 0, 10,
-                        button(0), button(1), button(2), button(3), button(4)
-                    );
-                case 6:
-                    return RE::MessageBoxMenu::Create(
-                        message, OnMessageBoxResult, 0, 0, 10,
-                        button(0), button(1), button(2), button(3), button(4), button(5)
-                    );
-                case 7:
-                    return RE::MessageBoxMenu::Create(
-                        message, OnMessageBoxResult, 0, 0, 10,
-                        button(0), button(1), button(2), button(3), button(4), button(5), button(6)
-                    );
-                case 8:
-                    return RE::MessageBoxMenu::Create(
-                        message, OnMessageBoxResult, 0, 0, 10,
-                        button(0), button(1), button(2), button(3), button(4), button(5), button(6), button(7)
-                    );
-                case 9:
-                    return RE::MessageBoxMenu::Create(
-                        message, OnMessageBoxResult, 0, 0, 10,
-                        button(0), button(1), button(2), button(3), button(4), button(5), button(6), button(7), button(8)
-                    );
-                default:
-                    return false;
-            }
-        }
-
         void ShowPage(std::size_t requestedPage)
         {
             auto* currentMap   = WorldspaceCatalog::GetMapOwner(GetCurrentWorldspace());
             auto* selectedMap  = WorldspaceCatalog::GetMapOwner(MapSelection::GetSelectedWorldspace());
             const auto options = WorldspaceCatalog::GetOrderedOptions(currentMap, selectedMap);
             if (options.empty()) {
-                ConsumeFlow();
+                MapSwitchFlow::Cancel();
                 RE::SendHUDMessage::ShowHUDMessage("WorldMapSelector found no selectable maps.");
                 return;
             }
@@ -385,16 +241,17 @@ namespace WMS::MapChooser
                 pendingActions = std::move(actions);
             }
 
-            if (!OpenClassicMessageBox(
+            if (!ClassicMessageBox::Open(
                     message.c_str(),
-                    buttons)) {
+                    buttons,
+                    OnMessageBoxResult)) {
                 {
                     std::scoped_lock lock(actionsLock);
                     pendingActions.clear();
                 }
                 SKSE::log::error(
                     "Could not open the world-map chooser.");
-                ConsumeFlow();
+                MapSwitchFlow::Cancel();
             }
         }
 
@@ -419,7 +276,7 @@ namespace WMS::MapChooser
                     return;
                 }
 
-                ConfigureFlow(FlowMode::kSwitchOpenMap);
+                MapSwitchFlow::ConfigureInsideMap();
                 ShowPage(0);
                 return;
             }
@@ -430,11 +287,8 @@ namespace WMS::MapChooser
             }
 
             // Choose whether a selection made outside MapMenu should open it.
-            ConfigureFlow(
-                Config::GetOpenMapAfterSelection()
-                    ? FlowMode::kOpenAfterChoice
-                    : FlowMode::kNone
-            );
+            MapSwitchFlow::ConfigureOutsideMap(
+                Config::GetOpenMapAfterSelection());
             ShowPage(0);
         }
 
@@ -527,24 +381,6 @@ namespace WMS::MapChooser
 
     bool OnMapMenuClosed()
     {
-        // Returning true tells the menu event sink that this close belongs to
-        // a switch, not to the end of a one-shot selection.
-        {
-            std::scoped_lock lock(flowLock);
-            if (!reopenAfterMapClose) {
-                return false;
-            }
-            reopenAfterMapClose = false;
-        }
-
-        if (auto* tasks = SKSE::GetTaskInterface()) {
-            tasks->AddTask([] {
-                OpenSelectedMap();
-            });
-            return true;
-        }
-
-        SKSE::log::error("Could not reopen MapMenu after switching maps.");
-        return false;
+        return MapSwitchFlow::OnMapMenuClosed();
     }
 }

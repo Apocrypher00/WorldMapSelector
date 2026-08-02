@@ -27,6 +27,8 @@ add_commonlibsse_plugin(
     COMPATIBLE_RUNTIMES
         1.6.1170
     SOURCES
+        src/ClassicMessageBox.cpp
+        src/ClassicMessageBox.h
         src/Config.cpp
         src/Diagnostics.cpp
         src/Hooks.cpp
@@ -35,6 +37,8 @@ add_commonlibsse_plugin(
         src/MapMenuEvents.cpp
         src/MapMarkerOverride.cpp
         src/MapSelection.cpp
+        src/MapSwitchFlow.cpp
+        src/MapSwitchFlow.h
         src/RoutedMarkerOverride.cpp
         src/RoutedMarkerOverride.h
         src/Utilities.cpp

@@ -108,6 +108,8 @@ namespace WMS::MapSwitchFlow
                     RE::UI_MESSAGE_TYPE::kHide,
                     nullptr);
             } else {
+                SKSE::log::error(
+                    "Could not get the UI message queue to close MapMenu.");
                 std::scoped_lock lock(flowLock);
                 reopenAfterMapClose = false;
             }

@@ -148,10 +148,12 @@ namespace WMS::MapChooser
         {
             // Start empty because Skyrim may return an out-of-range index.
             std::optional<Action> action;
+            std::size_t actionCount = 0;
             {
                 // Limit the mutex lifetime to copying one action and clearing
                 // shared state; HandleAction runs after the lock is released.
                 std::scoped_lock lock(actionsLock);
+                actionCount = pendingActions.size();
                 if (button < pendingActions.size()) {
                     action = pendingActions[button];
                 }
@@ -161,6 +163,11 @@ namespace WMS::MapChooser
             if (action) {
                 // Dereference the optional to pass its contained Action.
                 HandleAction(*action);
+            } else {
+                SKSE::log::warn(
+                    "Map chooser returned invalid button index {} for {} actions.",
+                    button,
+                    actionCount);
             }
         }
 
@@ -184,6 +191,12 @@ namespace WMS::MapChooser
             const auto page = (std::min)(requestedPage, pageCount - 1);
             const auto first = page * mapsPerPage;
             const auto last = (std::min)(first + mapsPerPage, options.size());
+
+            SKSE::log::debug(
+                "Opening map chooser page {}/{} with {} selectable maps.",
+                page + 1,
+                pageCount,
+                options.size());
 
             std::vector<std::string> buttons;
             std::vector<Action> actions;
@@ -261,6 +274,8 @@ namespace WMS::MapChooser
                 RE::PlayerCharacter::GetSingleton();
             auto* ui = RE::UI::GetSingleton();
             if (!player || !ui) {
+                SKSE::log::debug(
+                    "Ignored map chooser request because player or UI state is unavailable.");
                 return;
             }
 
@@ -268,11 +283,16 @@ namespace WMS::MapChooser
             // This includes fast-travel confirmations and custom-marker menus
             // displayed over MapMenu.
             if (ui->IsMenuOpen(RE::MessageBoxMenu::MENU_NAME)) {
+                SKSE::log::trace(
+                    "Ignored map chooser request because another message box is open.");
                 return;
             }
 
             if (ui->IsMenuOpen(RE::MapMenu::MENU_NAME)) {
                 if (!Config::GetAllowChooserWhileMapOpen()) {
+                    SKSE::log::debug(
+                        "Ignored map chooser request while MapMenu is open; "
+                        "AllowChooserWhileMapOpen is false.");
                     return;
                 }
 
@@ -283,6 +303,8 @@ namespace WMS::MapChooser
 
             if (ui->GameIsPaused() ||
                 ui->IsModalMenuOpen()) {
+                SKSE::log::trace(
+                    "Ignored map chooser request while another paused or modal menu is active.");
                 return;
             }
 
@@ -341,6 +363,9 @@ namespace WMS::MapChooser
 
                         if (cancelIndex) {
                             // * extracts the integer held by the optional.
+                            SKSE::log::trace(
+                                "Translated Escape into map chooser Cancel button {}.",
+                                *cancelIndex);
                             RE::MessageBoxMenu::SelectOption(*cancelIndex);
                             return RE::BSEventNotifyControl::kStop;
                         }

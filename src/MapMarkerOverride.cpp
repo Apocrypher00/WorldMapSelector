@@ -68,7 +68,7 @@ namespace WMS::MapMarkerOverride
             }
 
             suppressPlayerMarkerLoop = true;
-            SKSE::log::info(
+            SKSE::log::debug(
                 "Remote map {:08X}: omitted current location; collected {} "
                 "handles and added {} markers.",
                 selectedWorldspace->GetFormID(),
@@ -110,7 +110,7 @@ namespace WMS::MapMarkerOverride
         if (createCurrentLocationStatus != MH_OK) {
             SKSE::log::error(
                 "Current-location marker hook creation failed: {}",
-                static_cast<int>(createCurrentLocationStatus));
+                MH_StatusToString(createCurrentLocationStatus));
             return false;
         }
 
@@ -122,7 +122,7 @@ namespace WMS::MapMarkerOverride
         if (createMarkerStatus != MH_OK) {
             SKSE::log::error(
                 "Marker-from-handle hook creation failed: {}",
-                static_cast<int>(createMarkerStatus));
+                MH_StatusToString(createMarkerStatus));
             return false;
         }
 

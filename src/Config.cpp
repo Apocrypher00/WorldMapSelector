@@ -75,7 +75,7 @@ namespace WMS::Config
                 }
                 else { SKSE::log::warn("Invalid LogLevel \"{}\"; keeping default Info.", configured); }
             }
-            else { SKSE::log::info("LogLevel not specified; keeping default Info."); }
+            else { SKSE::log::debug("LogLevel not specified; keeping default Info."); }
 
             ApplyLogLevel();
         }
@@ -88,7 +88,7 @@ namespace WMS::Config
                 }
                 else { SKSE::log::warn("Invalid OpenSelectorKey \"{}\"; keeping default 0x44 (F10).", configured); }
             }
-            else { SKSE::log::info("OpenSelectorKey not specified; keeping default 0x44 (F10)."); }
+            else { SKSE::log::debug("OpenSelectorKey not specified; keeping default 0x44 (F10)."); }
         }
 
         void ReadBool(const CSimpleIniA& ini, const char* key, bool& setting)
@@ -99,7 +99,7 @@ namespace WMS::Config
                 }
                 else { SKSE::log::warn("Invalid {} \"{}\"; expected true or false. Keeping default.", key, configured); }
             }
-            else { SKSE::log::info("{} not specified. Keeping default.", key); }
+            else { SKSE::log::debug("{} not specified. Keeping default.", key); }
         }
     }
 
@@ -122,6 +122,16 @@ namespace WMS::Config
         ReadBool(ini, "OpenMapAfterSelection", openMapAfterSelection);
         ReadBool(ini, "AllowChooserWhileMapOpen", allowChooserWhileMapOpen);
         ReadBool(ini, "PersistSelection", persistSelection);
+
+        SKSE::log::info(
+            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, "
+            "OpenMapAfterSelection={}, AllowChooserWhileMapOpen={}, "
+            "PersistSelection={}.",
+            spdlog::level::to_string_view(logLevel),
+            openSelectorKey,
+            openMapAfterSelection,
+            allowChooserWhileMapOpen,
+            persistSelection);
     }
 
     // Public getters return copies so callers cannot modify the stored settings.

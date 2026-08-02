@@ -130,7 +130,7 @@ namespace WMS::WorldspaceOverride
             selectedMapWorldspace.load(
                 std::memory_order_acquire);
 
-        SKSE::log::info(
+        SKSE::log::debug(
             "Froze map selection for open session: {:08X}.",
             selectedWorldspace
                 ? selectedWorldspace->GetFormID()
@@ -148,7 +148,7 @@ namespace WMS::WorldspaceOverride
             std::memory_order_release);
 
         if (wasActive) {
-            SKSE::log::info(
+            SKSE::log::debug(
                 "Cleared map selection session state.");
         }
     }
@@ -173,7 +173,7 @@ namespace WMS::WorldspaceOverride
         if (createStatus != MH_OK) {
             SKSE::log::error(
                 "Resolver hook creation failed: {}",
-                static_cast<int>(createStatus));
+                MH_StatusToString(createStatus));
             return false;
         }
 

@@ -65,7 +65,11 @@ namespace WMS::RoutedMarkerOverride
         std::optional<RE::TeleportPath> BuildSelectedRouteTail(const RE::TeleportPath* route)
         {
             const auto* selectedWorldspace = WorldspaceOverride::GetSelectedMapWorldspace();
-            if (!route || !selectedWorldspace) { return std::nullopt; }
+            if (!route || !selectedWorldspace) {
+                SKSE::log::trace(
+                    "Could not trim routed marker: route or selected worldspace was unavailable.");
+                return std::nullopt;
+            }
 
             std::optional<std::size_t> selectedIndex;
             for (std::size_t index = 0; index < route->spaces.size(); ++index) {
@@ -75,7 +79,12 @@ namespace WMS::RoutedMarkerOverride
                     break;
                 }
             }
-            if (!selectedIndex) { return std::nullopt; }
+            if (!selectedIndex) {
+                SKSE::log::trace(
+                    "Rejected routed marker whose path does not enter selected worldspace {:08X}.",
+                    selectedWorldspace->GetFormID());
+                return std::nullopt;
+            }
 
             RE::TeleportPath trimmed;
             trimmed.start = route->start;
@@ -89,6 +98,15 @@ namespace WMS::RoutedMarkerOverride
                 trimmed.teleportRefs.push_back(route->teleportRefs[index]);
             }
 
+            SKSE::log::trace(
+                "Trimmed routed marker for worldspace {:08X}: {} -> {} spaces, "
+                "{} -> {} teleport references.",
+                selectedWorldspace->GetFormID(),
+                route->spaces.size(),
+                trimmed.spaces.size(),
+                route->teleportRefs.size(),
+                trimmed.teleportRefs.size());
+
             return trimmed;
         }
 
@@ -100,6 +118,8 @@ namespace WMS::RoutedMarkerOverride
                 return originalBindCustomDestinationMarker(result, mapMarkers);
             }
 
+            SKSE::log::debug(
+                "Processing custom-destination marker routes for the selected map.");
             ScopedSelectedMapRoutes guard;
             return originalBindCustomDestinationMarker(result, mapMarkers);
         }
@@ -120,6 +140,8 @@ namespace WMS::RoutedMarkerOverride
                 return;
             }
 
+            SKSE::log::debug(
+                "Processing quest-marker routes for the selected world map.");
             ScopedSelectedMapRoutes guard;
             originalAppendQuestMarkers(mapMarkers, objectives, mapMode);
         }
@@ -183,7 +205,7 @@ namespace WMS::RoutedMarkerOverride
         if (createCustomDestinationStatus != MH_OK) {
             SKSE::log::error(
                 "Custom-destination marker hook creation failed: {}",
-                static_cast<int>(createCustomDestinationStatus));
+                MH_StatusToString(createCustomDestinationStatus));
             return false;
         }
 
@@ -195,7 +217,7 @@ namespace WMS::RoutedMarkerOverride
         if (createQuestMarkersStatus != MH_OK) {
             SKSE::log::error(
                 "Quest-marker hook creation failed: {}",
-                static_cast<int>(createQuestMarkersStatus));
+                MH_StatusToString(createQuestMarkersStatus));
             return false;
         }
 
@@ -207,7 +229,7 @@ namespace WMS::RoutedMarkerOverride
         if (createResolveRoutedMarkerStatus != MH_OK) {
             SKSE::log::error(
                 "Routed-marker resolver hook creation failed: {}",
-                static_cast<int>(createResolveRoutedMarkerStatus));
+                MH_StatusToString(createResolveRoutedMarkerStatus));
             return false;
         }
 
@@ -219,7 +241,7 @@ namespace WMS::RoutedMarkerOverride
         if (createRouteRootStatus != MH_OK) {
             SKSE::log::error(
                 "Route-root comparison hook creation failed: {}",
-                static_cast<int>(createRouteRootStatus));
+                MH_StatusToString(createRouteRootStatus));
             return false;
         }
 

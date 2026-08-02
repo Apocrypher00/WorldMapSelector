@@ -100,7 +100,7 @@ namespace WMS::WorldspaceCatalog
             entries.size());
 
         for (const auto& entry : entries) {
-            SKSE::log::info(
+            SKSE::log::debug(
                 "Selectable map: name=\"{}\", editorID=\"{}\", "
                 "FormID={:08X}, plugin=\"{}\"",
                 entry.displayName,

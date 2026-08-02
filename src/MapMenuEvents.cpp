@@ -1,0 +1,69 @@
+#include "Diagnostics.h"
+#include "MapChooser.h"
+#include "MapMenuEvents.h"
+#include "MapSelection.h"
+#include "WorldspaceOverride.h"
+
+namespace WMS::MapMenuEvents
+{
+    namespace
+    {
+        // Inheritance makes this object an event sink Skyrim can call. final
+        // prevents another class from deriving from our sink.
+        class MenuEventSink final : public RE::BSTEventSink<RE::MenuOpenCloseEvent>
+        {
+        public:
+            // override asks the compiler to verify that this exactly matches
+            // the virtual callback declared by BSTEventSink.
+            RE::BSEventNotifyControl ProcessEvent(
+                const RE::MenuOpenCloseEvent* event,
+                RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override
+            {
+                if (!event || event->menuName != RE::MapMenu::MENU_NAME) {
+                    return RE::BSEventNotifyControl::kContinue;
+                }
+
+                SKSE::log::info(
+                    "MapMenu {}",
+                    // Select one word according to the Boolean opening field.
+                    event->opening ? "opened" : "closed");
+
+                if (event->opening) {
+                    // MapMenu construction has already asked the resolver for
+                    // its worldspace. Freeze that decision for this menu instance.
+                    WorldspaceOverride::BeginSession();
+                    Diagnostics::LogWorldspaceState();
+                } else {
+                    WorldspaceOverride::ResetSession();
+
+                    // A map switch deliberately closes and reopens MapMenu.
+                    // Do not consume a one-shot selection during that handoff.
+                    if (!MapChooser::OnMapMenuClosed()) {
+                        MapSelection::OnMapClosed();
+                    }
+                }
+
+                // kContinue allows other registered listeners to receive the event.
+                return RE::BSEventNotifyControl::kContinue;
+            }
+        };
+    }
+
+    bool Register()
+    {
+        auto* ui = RE::UI::GetSingleton();
+        if (!ui) {
+            SKSE::log::error("Could not get the UI singleton.");
+            return false;
+        }
+
+        // A function-local static is constructed once and lives until the DLL
+        // unloads. Skyrim therefore never retains a pointer to a dead sink.
+        static MenuEventSink menuEventSink;
+
+        // & obtains the sink object's address because AddEventSink expects a pointer.
+        ui->AddEventSink<RE::MenuOpenCloseEvent>(&menuEventSink);
+        SKSE::log::info("Registered MapMenu event listener.");
+        return true;
+    }
+}

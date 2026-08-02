@@ -1,4 +1,5 @@
 #include "WorldspaceCatalog.h"
+#include "Utilities.h"
 
 #include <charconv>
 #include <shared_mutex>
@@ -7,14 +8,10 @@ namespace WMS::WorldspaceCatalog
 {
     namespace
     {
+        // entries is shared by the game-start builder and later UI/command
+        // readers. shared_mutex permits multiple readers but only one writer.
         std::vector<MapOption> entries;
         std::shared_mutex entriesLock;
-
-        bool EqualsIgnoreCase(std::string_view left, std::string_view right)
-        {
-            return left.size() == right.size() &&
-                   _strnicmp(left.data(), right.data(), left.size()) == 0;
-        }
 
         std::string_view Trim(std::string_view value)
         {
@@ -24,9 +21,11 @@ namespace WMS::WorldspaceCatalog
             }
 
             const auto last = value.find_last_not_of(" \t\r\n");
+            // substr returns another non-owning view into the original text.
             return value.substr(first, last - first + 1);
         }
 
+        // Convert Skyrim's borrowed C string into an owned std::string.
         std::string SafeText(const char* text, std::string_view fallback)
         {
             return text && text[0] ? text : std::string(fallback);
@@ -34,12 +33,15 @@ namespace WMS::WorldspaceCatalog
 
         RE::TESWorldSpace* ResolveMapOwner(RE::TESWorldSpace* worldspace)
         {
+            // Child worldspaces such as Whiterun can explicitly reuse their parent's map data.
+            // The chooser should list the owning map once.
             auto* owner = worldspace;
 
-            while (owner &&
-                   owner->parentWorld &&
-                   owner->parentUseFlags.any(
-                       RE::TESWorldSpace::ParentUseFlag::kUseMapData)) {
+            // Follow the parent only when this worldspace explicitly inherits
+            // the parent's map data. The final pointer owns the displayed map.
+            while (owner && owner->parentWorld && owner->parentUseFlags.any(
+                RE::TESWorldSpace::ParentUseFlag::kUseMapData
+            )) {
                 owner = owner->parentWorld;
             }
 
@@ -52,13 +54,14 @@ namespace WMS::WorldspaceCatalog
                 return false;
             }
 
+            // A usable world map needs non-degenerate cell bounds. This also
+            // admits map data supplied to normally mapless worlds by mods.
             const auto& map = worldspace->worldMapData;
             return map.nwCellX != map.seCellX ||
                    map.nwCellY != map.seCellY;
         }
 
-        std::optional<RE::FormID> ParseRuntimeFormID(
-            std::string_view text)
+        std::optional<RE::FormID> ParseRuntimeFormID(std::string_view text)
         {
             text = Trim(text);
             if (text.starts_with("0x") || text.starts_with("0X")) {
@@ -66,6 +69,8 @@ namespace WMS::WorldspaceCatalog
             }
 
             RE::FormID value = 0;
+            // Structured binding assigns the two fields returned by from_chars to the local names end and error.
+            // Base 16 treats the text as hex.
             const auto [end, error] = std::from_chars(
                 text.data(),
                 text.data() + text.size(),
@@ -82,6 +87,7 @@ namespace WMS::WorldspaceCatalog
 
     }
 
+    // Called after SKSE's DataLoaded message, when forms from every active plugin are available and their runtime FormIDs are final.
     void Build()
     {
         auto* dataHandler = RE::TESDataHandler::GetSingleton();
@@ -93,6 +99,7 @@ namespace WMS::WorldspaceCatalog
 
         std::vector<MapOption> newEntries;
 
+        // Range-based for visits every loaded TESWorldSpace form.
         for (auto* worldspace :
              dataHandler->GetFormArray<RE::TESWorldSpace>()) {
             if (!IsMapCandidate(worldspace)) {
@@ -108,6 +115,7 @@ namespace WMS::WorldspaceCatalog
                 continue;
             }
 
+            // Designated initializers name each MapOption field being filled.
             newEntries.push_back({
                 .worldspace = worldspace,
                 .displayName =
@@ -119,7 +127,9 @@ namespace WMS::WorldspaceCatalog
         }
 
         {
+            // unique_lock excludes readers while replacing the shared catalogue.
             std::unique_lock lock(entriesLock);
+            // move transfers the vector's allocation instead of copying every entry.
             entries = std::move(newEntries);
         }
 
@@ -147,10 +157,13 @@ namespace WMS::WorldspaceCatalog
         RE::TESWorldSpace* currentWorldspace,
         RE::TESWorldSpace* selectedWorldspace)
     {
+        // Copy a stable snapshot while holding a shared/read lock, then release
+        // the lock before sorting the private copy.
         std::shared_lock lock(entriesLock);
         auto result = entries;
         lock.unlock();
 
+        // The lambda is an unnamed comparison function passed into sort.
         std::ranges::sort(
             result,
             [](const MapOption& left, const MapOption& right) {
@@ -167,12 +180,16 @@ namespace WMS::WorldspaceCatalog
                            right.editorID.c_str()) < 0;
             });
 
+        // Capture [&] lets this lambda use result by reference. It moves a
+        // requested worldspace to index without disturbing more items than necessary.
         const auto moveToIndex =
             [&](RE::TESWorldSpace* worldspace, std::size_t index) {
                 if (!worldspace || index >= result.size()) {
                     return;
                 }
 
+                // next advances an iterator; find_if searches from that point;
+                // rotate moves the found entry into the destination position.
                 const auto destination =
                     std::next(result.begin(), index);
                 const auto option = std::find_if(
@@ -194,6 +211,9 @@ namespace WMS::WorldspaceCatalog
         auto* selectedMap =
             ResolveMapOwner(selectedWorldspace);
 
+        // Keep the useful status entries first; the remaining entries retain
+        // the case-insensitive alphabetical ordering established above.
+
         moveToIndex(currentMap, 0);
         if (selectedMap != currentMap) {
             moveToIndex(selectedMap, currentMap ? 1 : 0);
@@ -207,14 +227,17 @@ namespace WMS::WorldspaceCatalog
         identifier = Trim(identifier);
 
         if (identifier.empty() ||
-            EqualsIgnoreCase(identifier, "Default")) {
+            Utilities::EqualsIgnoreCase(identifier, "Default")) {
             return { .isDefault = true };
         }
 
         std::shared_lock lock(entriesLock);
 
+        // This if-with-initializer keeps formID scoped to the numeric lookup.
+        // optional converts to true only when parsing produced a value.
         if (const auto formID = ParseRuntimeFormID(identifier)) {
             for (const auto& entry : entries) {
+                // * extracts the value stored inside the optional.
                 if (entry.worldspace->GetFormID() == *formID) {
                     return { .worldspace = entry.worldspace };
                 }
@@ -230,7 +253,7 @@ namespace WMS::WorldspaceCatalog
         RE::TESWorldSpace* match = nullptr;
         for (const auto& entry : entries) {
             if (!entry.editorID.empty() &&
-                EqualsIgnoreCase(entry.editorID, identifier)) {
+                Utilities::EqualsIgnoreCase(entry.editorID, identifier)) {
                 if (match) {
                     return {
                         .error = fmt::format(

@@ -83,12 +83,12 @@ The hotkey uses a DirectInput keyboard scan code and can be changed in the INI.
 
 ```ini
 [General]
-; Valid levels: Trace, Debug, Info, Warn, Error, Critical, Off
+; Valid levels: Trace, Debug, Info, Warn, Err, Critical, Off
 LogLevel=Info
 
 [Controls]
-; DirectInput keyboard scan code. 0x44 is F10.
-; Set to 0 to disable the built-in chooser hotkey.
+; DirectInput keyboard scan code in hexadecimal (0x00 through 0xFF).
+; 0x44 is F10. Set to 0x00 to disable the built-in chooser hotkey.
 OpenSelectorKey=0x44
 
 [Behavior]

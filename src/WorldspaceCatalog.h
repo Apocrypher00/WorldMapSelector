@@ -2,6 +2,8 @@
 
 namespace WMS::WorldspaceCatalog
 {
+    // Each option owns its display strings but only borrows the TESWorldSpace;
+    // Skyrim owns that form for the lifetime of the loaded game data.
     struct MapOption
     {
         RE::TESWorldSpace* worldspace = nullptr;
@@ -12,6 +14,7 @@ namespace WMS::WorldspaceCatalog
 
     struct SelectionResult
     {
+        // Exactly one useful outcome is expected: isDefault, worldspace, or error.
         RE::TESWorldSpace* worldspace = nullptr;
         bool isDefault = false;
         std::string error;

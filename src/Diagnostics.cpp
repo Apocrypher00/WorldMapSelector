@@ -1,7 +1,4 @@
 #include "Diagnostics.h"
-#include "MapChooser.h"
-#include "MapSelection.h"
-#include "WorldspaceOverride.h"
 
 namespace WMS::Diagnostics
 {
@@ -12,90 +9,46 @@ namespace WMS::Diagnostics
             return;
         }
 
-        const auto* name = worldspace->GetName();
+        const auto* name     = worldspace->GetName();
         const auto* editorID = worldspace->GetFormEditorID();
 
-        SKSE::log::info(
-            "{} worldspace: name=\"{}\", editorID=\"{}\", FormID={:08X}",
-            label,
-            name && name[0] ? name : "<unnamed>",
-            editorID && editorID[0] ? editorID : "<none>",
-            worldspace->GetFormID()
-        );
+        const char* formattedName     = name && name[0] ? name : "<unnamed>";
+		const char* formattedEditorId = editorID && editorID[0] ? editorID : "<none>";
+
+        SKSE::log::info("{} worldspace: name=\"{}\", editorID=\"{}\", FormID={:08X}", label, formattedName, formattedEditorId, worldspace->GetFormID());
     }
 
-    namespace
+    void LogWorldspaceState()
     {
-        void LogWorldspaceState()
-        {
-            const auto* player = RE::PlayerCharacter::GetSingleton();
-            if (!player) {
-                SKSE::log::error("Could not get the player singleton.");
-                return;
-            }
-
-            LogWorldspace("Player", player->GetWorldspace());
-
-            auto* ui = RE::UI::GetSingleton();
-            if (!ui) {
-                SKSE::log::error("Could not get the UI singleton.");
-                return;
-            }
-
-            const auto mapMenu = ui->GetMenu<RE::MapMenu>();
-            if (!mapMenu) {
-                SKSE::log::warn("MapMenu instance was unavailable during the open event.");
-                return;
-            }
-
-            const auto* runtimeData = mapMenu->GetRuntimeData2();
-            if (!runtimeData) {
-                SKSE::log::warn("MapMenu runtime data was unavailable.");
-                return;
-            }
-
-            LogWorldspace("MapMenu", runtimeData->worldSpace);
-            LogWorldspace("MapCamera", runtimeData->camera.worldSpace);
+        const auto* player = RE::PlayerCharacter::GetSingleton();
+        if (!player) {
+            SKSE::log::error("Could not get the player singleton.");
+            return;
         }
 
-        class MenuEventSink final : public RE::BSTEventSink<RE::MenuOpenCloseEvent>
-        {
-            public: RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override
-            {
-                if (!event || event->menuName != RE::MapMenu::MENU_NAME) {
-                    return RE::BSEventNotifyControl::kContinue;
-                }
+        LogWorldspace("Player", player->GetWorldspace());
 
-                SKSE::log::info(
-                    "MapMenu {}",
-                    event->opening ? "opened" : "closed"
-                );
-
-                if (event->opening) {
-                    WorldspaceOverride::BeginSession();
-                    LogWorldspaceState();
-                } else {
-                    WorldspaceOverride::ResetSession();
-                    if (!MapChooser::OnMapMenuClosed()) {
-                        MapSelection::OnMapClosed();
-                    }
-                }
-
-                return RE::BSEventNotifyControl::kContinue;
-            }
-        };
-    }
-
-    void RegisterMenuEventSink()
-    {
         auto* ui = RE::UI::GetSingleton();
         if (!ui) {
             SKSE::log::error("Could not get the UI singleton.");
             return;
         }
 
-        static MenuEventSink menuEventSink;
-        ui->AddEventSink<RE::MenuOpenCloseEvent>(&menuEventSink);
-        SKSE::log::info("Registered MapMenu event listener.");
+        // <RE::MapMenu> is a template argument.
+        // It asks GetMenu for this specific menu type instead of returning an untyped menu.
+        const auto mapMenu = ui->GetMenu<RE::MapMenu>();
+        if (!mapMenu) {
+            SKSE::log::warn("MapMenu instance was unavailable during the open event.");
+            return;
+        }
+
+        const auto* runtimeData = mapMenu->GetRuntimeData2();
+        if (!runtimeData) {
+            SKSE::log::warn("MapMenu runtime data was unavailable.");
+            return;
+        }
+
+        LogWorldspace("MapMenu", runtimeData->worldSpace);
+        LogWorldspace("MapCamera", runtimeData->camera.worldSpace);
     }
 }

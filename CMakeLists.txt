@@ -20,6 +20,7 @@ add_subdirectory(extern/CommonLibVR)
 include("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/cmake/CommonLibSSE.cmake")
 
 find_package(minhook CONFIG REQUIRED)
+find_path(SIMPLEINI_INCLUDE_DIR SimpleIni.h REQUIRED)
 
 add_commonlibsse_plugin(
     ${PROJECT_NAME}
@@ -29,11 +30,22 @@ add_commonlibsse_plugin(
         src/Config.cpp
         src/Diagnostics.cpp
         src/MapChooser.cpp
+        src/MapMenuEvents.cpp
         src/MapMarkerOverride.cpp
         src/MapSelection.cpp
+        src/RoutedMarkerOverride.cpp
+        src/RoutedMarkerOverride.h
+        src/Utilities.cpp
+        src/Utilities.h
         src/WorldspaceCatalog.cpp
         src/WorldspaceOverride.cpp
         src/plugin.cpp
+)
+
+target_include_directories(
+    ${PROJECT_NAME}
+    PRIVATE
+        "${SIMPLEINI_INCLUDE_DIR}"
 )
 
 target_link_libraries(

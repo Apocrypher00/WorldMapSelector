@@ -1,166 +1,132 @@
 #include "Config.h"
+#include "Utilities.h"
 
-namespace
-{
-    const auto configPath = std::filesystem::absolute("Data\\SKSE\\Plugins\\WorldMapSelector.ini").string();
-
-    std::uint32_t openSelectorKey = 0x44;
-    bool openMapAfterSelection = true;
-    bool persistSelection = true;
-    bool allowChooserWhileMapOpen = true;
-
-    std::string ReadString(
-        const char* section,
-        const char* key,
-        const char* defaultValue)
-    {
-        std::array<char, 256> value{};
-        REX::W32::GetPrivateProfileStringA(
-            section,
-            key,
-            defaultValue,
-            value.data(),
-            static_cast<DWORD>(value.size()),
-            configPath.c_str());
-
-        return value.data();
-    }
-
-    std::optional<spdlog::level::level_enum> ParseLogLevel(
-        std::string_view value)
-    {
-        if (_stricmp(value.data(), "trace") == 0) {
-            return spdlog::level::trace;
-        }
-        if (_stricmp(value.data(), "debug") == 0) {
-            return spdlog::level::debug;
-        }
-        if (_stricmp(value.data(), "info") == 0) {
-            return spdlog::level::info;
-        }
-        if (_stricmp(value.data(), "warn") == 0 ||
-            _stricmp(value.data(), "warning") == 0) {
-            return spdlog::level::warn;
-        }
-        if (_stricmp(value.data(), "error") == 0) {
-            return spdlog::level::err;
-        }
-        if (_stricmp(value.data(), "critical") == 0) {
-            return spdlog::level::critical;
-        }
-        if (_stricmp(value.data(), "off") == 0) {
-            return spdlog::level::off;
-        }
-
-        return std::nullopt;
-    }
-
-    std::optional<std::uint32_t> ParseKeyCode(std::string_view value)
-    {
-        char* end = nullptr;
-        const auto parsed = std::strtoul(value.data(), &end, 0);
-        if (end == value.data() ||
-            *end != '\0' ||
-            parsed > 0xFF) {
-            return std::nullopt;
-        }
-
-        return static_cast<std::uint32_t>(parsed);
-    }
-
-    std::optional<bool> ParseBool(std::string_view value)
-    {
-        if (_stricmp(value.data(), "true") == 0 ||
-            _stricmp(value.data(), "yes") == 0 ||
-            value == "1") {
-            return true;
-        }
-        if (_stricmp(value.data(), "false") == 0 ||
-            _stricmp(value.data(), "no") == 0 ||
-            value == "0") {
-            return false;
-        }
-
-        return std::nullopt;
-    }
-
-    bool ReadBool(
-        const char* key,
-        bool defaultValue)
-    {
-        const auto configured =
-            ReadString(
-                "Behavior",
-                key,
-                defaultValue ? "true" : "false");
-        const auto parsed = ParseBool(configured);
-        if (!parsed) {
-            SKSE::log::warn(
-                "Invalid {} \"{}\"; using {}.",
-                key,
-                configured,
-                defaultValue);
-        }
-
-        return parsed.value_or(defaultValue);
-    }
-}
+#include <charconv>
+#include <SimpleIni.h>
 
 namespace WMS::Config
 {
+    namespace
+    {
+        // Turn the game-relative INI path into the path SimpleIni reads.
+        const auto configPath = std::filesystem::absolute("Data\\SKSE\\Plugins\\WorldMapSelector.ini").string();
+
+        // Initialize the plugin configuration settings with their default values.
+        // Missing or invalid INI entries leave these values unchanged.
+        auto logLevel = spdlog::level::info; // This default actually needs to be applied
+        std::uint32_t openSelectorKey = 0x44;
+        bool openMapAfterSelection = true;
+        bool persistSelection = true;
+        bool allowChooserWhileMapOpen = true;
+
+        std::optional<spdlog::level::level_enum> ParseLogLevel(std::string_view text)
+        {
+            if (Utilities::EqualsIgnoreCase(text, "trace"))    return spdlog::level::trace;
+            if (Utilities::EqualsIgnoreCase(text, "debug"))    return spdlog::level::debug;
+            if (Utilities::EqualsIgnoreCase(text, "info"))     return spdlog::level::info;
+            if (Utilities::EqualsIgnoreCase(text, "warn"))     return spdlog::level::warn;
+            if (Utilities::EqualsIgnoreCase(text, "err"))      return spdlog::level::err;
+            if (Utilities::EqualsIgnoreCase(text, "critical")) return spdlog::level::critical;
+            if (Utilities::EqualsIgnoreCase(text, "off"))      return spdlog::level::off;
+            return std::nullopt;
+        }
+
+        std::optional<std::uint32_t> ParseKeyCode(std::string_view text)
+        {
+            // Require the hexadecimal prefix documented in the INI,
+            // then remove it from this non-owning view before parsing the remaining digits.
+            if (!text.starts_with("0x") && !text.starts_with("0X")) return std::nullopt;
+            text.remove_prefix(2);
+            if (text.empty()) return std::nullopt;
+
+            std::uint32_t parsed = 0;
+            const char* start = text.data();
+            const char* end = start + text.size();
+            const auto result = std::from_chars(start, end, parsed, 16);
+
+            // from_chars reports both a parsing error and where parsing stopped.
+            // Require every character to be valid hex and the result to fit in one byte.
+            if (result.ec != std::errc{} || result.ptr != end || parsed > 0xFF) {
+                return std::nullopt;
+            }
+
+            return parsed;
+        }
+
+        std::optional<bool> ParseBool(std::string_view text)
+        {
+            if (Utilities::EqualsIgnoreCase(text, "true"))  return true;
+            if (Utilities::EqualsIgnoreCase(text, "false")) return false;
+            return std::nullopt;
+        }
+
+        // Set the global log level and flush policy for spdlog.
+        void ApplyLogLevel()
+        {
+            spdlog::set_level(logLevel);
+            spdlog::default_logger()->flush_on(logLevel);
+        }
+
+        void ReadLogLevel(const CSimpleIniA& ini)
+        {
+            if (const char* configured = ini.GetValue("General", "LogLevel")) {
+                if (const auto parsed = ParseLogLevel(configured)) {
+                    logLevel = *parsed;
+                }
+                else { SKSE::log::warn("Invalid LogLevel \"{}\"; keeping default Info.", configured); }
+            }
+            else { SKSE::log::info("LogLevel not specified; keeping default Info."); }
+
+            ApplyLogLevel();
+        }
+
+        void ReadSelectorKey(const CSimpleIniA& ini)
+        {
+            if (const char* configured = ini.GetValue("Controls", "OpenSelectorKey")) {
+                if (const auto parsed = ParseKeyCode(configured)) {
+                    openSelectorKey = *parsed;
+                }
+                else { SKSE::log::warn("Invalid OpenSelectorKey \"{}\"; keeping default 0x44 (F10).", configured); }
+            }
+            else { SKSE::log::info("OpenSelectorKey not specified; keeping default 0x44 (F10)."); }
+        }
+
+        void ReadBool(const CSimpleIniA& ini, const char* key, bool& setting)
+        {
+            if (const char* configured = ini.GetValue("Behavior", key)) {
+                if (const auto parsed = ParseBool(configured)) {
+                    setting = *parsed;
+                }
+                else { SKSE::log::warn("Invalid {} \"{}\"; expected true or false. Keeping default.", key, configured); }
+            }
+            else { SKSE::log::info("{} not specified. Keeping default.", key); }
+        }
+    }
+
+    // Load the INI file and replace defaults only with settings that exist and parse successfully.
     void Load()
     {
-        const auto configuredLogLevel =
-            ReadString("General", "LogLevel", "Info");
-        const auto logLevel = ParseLogLevel(configuredLogLevel);
-        spdlog::set_level(
-            logLevel.value_or(spdlog::level::info));
-        spdlog::default_logger()->flush_on(
-            logLevel.value_or(spdlog::level::info));
-
-        if (!logLevel) {
-            SKSE::log::warn(
-                "Unknown LogLevel \"{}\"; using Info.",
-                configuredLogLevel);
+		// Read the INI file into memory.
+		// SimpleIni's LoadFile returns a status code, which is negative on error and non-negative on success.
+        CSimpleIniA ini;
+        const auto loadResult = ini.LoadFile(configPath.c_str());
+        if (loadResult < SI_OK) {
+            SKSE::log::warn("Could not load {}; keeping all default settings (error {}).", configPath, loadResult);
+			ApplyLogLevel();
+            return;
         }
 
-        const auto configuredKey =
-            ReadString("Controls", "OpenSelectorKey", "0x44");
-        const auto key = ParseKeyCode(configuredKey);
-        openSelectorKey = key.value_or(0x44);
-
-        if (!key) {
-            SKSE::log::warn(
-                "Invalid OpenSelectorKey \"{}\"; using 0x44 (F10).",
-                configuredKey);
-        }
-
-        openMapAfterSelection =
-            ReadBool("OpenMapAfterSelection", true);
-        allowChooserWhileMapOpen =
-            ReadBool("AllowChooserWhileMapOpen", true);
-
-        persistSelection =
-            ReadBool("PersistSelection", true);
+		// Read each setting from the INI file, leaving the default value unchanged if the key is missing or invalid.
+        ReadLogLevel(ini);
+		ReadSelectorKey(ini);
+        ReadBool(ini, "OpenMapAfterSelection", openMapAfterSelection);
+        ReadBool(ini, "AllowChooserWhileMapOpen", allowChooserWhileMapOpen);
+        ReadBool(ini, "PersistSelection", persistSelection);
     }
 
-    std::uint32_t GetOpenSelectorKey()
-    {
-        return openSelectorKey;
-    }
-
-    bool GetOpenMapAfterSelection()
-    {
-        return openMapAfterSelection;
-    }
-
-    bool GetPersistSelection()
-    {
-        return persistSelection;
-    }
-
-    bool GetAllowChooserWhileMapOpen()
-    {
-        return allowChooserWhileMapOpen;
-    }
+    // Public getters return copies so callers cannot modify the stored settings.
+    std::uint32_t GetOpenSelectorKey() { return openSelectorKey; }
+    bool GetOpenMapAfterSelection()    { return openMapAfterSelection; }
+    bool GetPersistSelection()         { return persistSelection; }
+    bool GetAllowChooserWhileMapOpen() { return allowChooserWhileMapOpen; }
 }

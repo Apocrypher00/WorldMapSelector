@@ -56,6 +56,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
         return false;
     }
 
+	// Enable all hooks in a single step.
     if (!WMS::Hooks::EnableAll()) {
         WMS::Hooks::Reset();
         return false;

@@ -3,7 +3,6 @@
 #include "MapChooser.h"
 #include "MapSelection.h"
 #include "MapSwitchFlow.h"
-#include "Utilities.h"
 #include "WorldspaceCatalog.h"
 #include "WorldspaceOverride.h"
 
@@ -11,12 +10,12 @@ namespace WMS::MapChooser
 {
     namespace
     {
-        // constexpr makes this a compile-time constant; size_t is the unsigned
-        // type used for container sizes and indexes.
+        // constexpr makes this a compile-time constant
+        // size_t is the unsigned type used for container sizes and indexes.
         constexpr std::size_t mapsPerPage = 6;
 
-        // enum class creates named values without leaking kSelectMap, etc. into
-        // the surrounding namespace or allowing accidental integer conversion.
+        // enum class creates named values without leaking kSelectMap, etc.
+        // into the surrounding namespace or allowing accidental integer conversion.
         enum class ActionType
         {
             kClearSelection,
@@ -35,8 +34,8 @@ namespace WMS::MapChooser
             std::string displayName;
         };
 
-        // MessageBoxMenu callbacks return only a button index, so preserve the
-        // matching actions until the callback arrives.
+        // MessageBoxMenu callbacks return only a button index,
+        // so preserve the matching actions until the callback arrives.
         std::mutex actionsLock;
         std::vector<Action> pendingActions;
 
@@ -60,29 +59,12 @@ namespace WMS::MapChooser
             return nullptr;
         }
 
-        std::string MakeButtonLabel(
-            const WorldspaceCatalog::MapOption& option,
-            const std::vector<WorldspaceCatalog::MapOption>& options,
-            RE::TESWorldSpace* currentMap,
-            RE::TESWorldSpace* selectedMap)
+        std::string MakeButtonLabel(const WorldspaceCatalog::MapOption& option, RE::TESWorldSpace* currentMap, RE::TESWorldSpace* selectedMap)
         {
             auto label = option.displayName;
 
-            // count_if calls this capturing lambda once per option. [&] permits
-            // it to read option from the surrounding function by reference.
-            const auto duplicateCount =
-                std::ranges::count_if(
-                    options,
-                    [&](const auto& candidate) {
-                        return Utilities::EqualsIgnoreCase(
-                            candidate.displayName,
-                            option.displayName);
-                    });
-            if (duplicateCount > 1 &&
-                !option.editorID.empty()) {
-                label += fmt::format(
-                    " ({})",
-                    option.editorID);
+            if (option.hasDuplicateDisplayName && !option.editorID.empty()) {
+                label += fmt::format(" ({})", option.editorID);
             }
 
             const bool isHere     = option.worldspace == currentMap;
@@ -100,48 +82,41 @@ namespace WMS::MapChooser
         }
 
         // Forward declaration: HandleAction uses ShowPage before its full definition appears later in this file.
+        // HandleAction calls ShowPage for Previous / Next
+        // ShowPage passes OnMessageBoxResult as the message - box callback
+        // OnMessageBoxResult calls HandleAction for the selected button
         void ShowPage(std::size_t page);
 
+		// HandleAction performs the action associated with a message-box button.
+        // const Action& borrows the existing action without copying it and prevents this function from modifying it.
         void HandleAction(const Action& action)
         {
-            // const Action& borrows the existing action without copying it and
-            // prevents this function from modifying it.
             switch (action.type) {
-            case ActionType::kClearSelection:
-                MapSelection::SelectDefault();
-                RE::SendHUDMessage::ShowHUDMessage(
-                    "World map selection cleared.");
-                SKSE::log::info(
-                    "Map chooser cleared the map selection.");
-                MapSwitchFlow::Cancel();
-                break;
+                case ActionType::kClearSelection:
+                    MapSelection::SelectDefault();
+                    RE::SendHUDMessage::ShowHUDMessage("World map selection cleared.");
+                    SKSE::log::info("Map chooser cleared the map selection.");
+                    MapSwitchFlow::Cancel();
+                    break;
 
-            case ActionType::kSelectMap:
-                MapSelection::Select(action.worldspace);
-                RE::SendHUDMessage::ShowHUDMessage(
-                    fmt::format(
-                        "World map selected: {}",
-                        action.displayName)
-                        .c_str());
-                SKSE::log::info(
-                    "Map chooser selected {} ({:08X}).",
-                    action.displayName,
-                    // Print the selected FormID, or zero if the pointer is null.
-                    action.worldspace
-                        ? action.worldspace->GetFormID()
-                        : 0);
-                MapSwitchFlow::ApplyAfterChoice();
-                break;
+                case ActionType::kSelectMap:
+                    MapSelection::Select(action.worldspace);
+                    RE::SendHUDMessage::ShowHUDMessage(fmt::format("World map selected: {}", action.displayName).c_str());
+                    SKSE::log::info("Map chooser selected {} ({:08X}).",
+                        action.displayName, action.worldspace ? action.worldspace->GetFormID() : 0
+                    );
+                    MapSwitchFlow::ApplyAfterChoice();
+                    break;
 
-            case ActionType::kPreviousPage:
-            case ActionType::kNextPage:
-                ShowPage(action.page);
-                break;
+                case ActionType::kPreviousPage:
+                case ActionType::kNextPage:
+                    ShowPage(action.page);
+                    break;
 
-            case ActionType::kCancel:
-                MapSwitchFlow::Cancel();
-                break;
-            }
+                case ActionType::kCancel:
+                    MapSwitchFlow::Cancel();
+                    break;
+                }
         }
 
         void OnMessageBoxResult(std::uint8_t button)
@@ -161,13 +136,9 @@ namespace WMS::MapChooser
             }
 
             if (action) {
-                // Dereference the optional to pass its contained Action.
                 HandleAction(*action);
             } else {
-                SKSE::log::warn(
-                    "Map chooser returned invalid button index {} for {} actions.",
-                    button,
-                    actionCount);
+                SKSE::log::warn("Map chooser returned invalid button index {} for {} actions.", button, actionCount);
             }
         }
 
@@ -184,31 +155,31 @@ namespace WMS::MapChooser
 
             // Integer ceiling division calculates enough pages for every map.
             // Parentheses around min/max prevent Windows macros from expanding.
-            const auto pageCount = (std::max)(
-                std::size_t{ 1 },
-                (options.size() + mapsPerPage - 1) / mapsPerPage
-            );
-            const auto page = (std::min)(requestedPage, pageCount - 1);
-            const auto first = page * mapsPerPage;
-            const auto last = (std::min)(first + mapsPerPage, options.size());
+            const auto requiredPageCount = (options.size() + mapsPerPage - 1) / mapsPerPage;
+            const auto pageCount         = (std::max)(std::size_t{ 1 }, requiredPageCount);
+            const auto page              = (std::min)(requestedPage, pageCount - 1);
+            const auto first             = page * mapsPerPage;
+            const auto last              = (std::min)(first + mapsPerPage, options.size());
 
             SKSE::log::debug(
                 "Opening map chooser page {}/{} with {} selectable maps.",
-                page + 1,
-                pageCount,
-                options.size());
+                page + 1, pageCount, options.size()
+            );
 
             std::vector<std::string> buttons;
             std::vector<Action> actions;
 
             if (page == 0) {
                 buttons.emplace_back("[Clear Selection]");
+                // Designated initializers make clear which Action fields this particular button requires;
+                // omitted fields keep defaults.
                 actions.push_back({
                     .type = ActionType::kClearSelection
                 });
             }
 
             if (page > 0) {
+				// The characters &lt; and &gt; are HTML-escaped to avoid confusing the message-box parser.
                 buttons.emplace_back("&lt;&lt; Previous");
                 actions.push_back({
                     .type = ActionType::kPreviousPage,
@@ -218,11 +189,9 @@ namespace WMS::MapChooser
 
             for (auto index = first; index < last; ++index) {
                 const auto& option = options[index];
-                const auto label = MakeButtonLabel(option, options, currentMap, selectedMap);
+                const auto label = MakeButtonLabel(option, currentMap, selectedMap);
 
                 buttons.push_back(label);
-                // Designated initializers make clear which Action fields this
-                // particular button requires; omitted fields keep defaults.
                 actions.push_back({
                     .type = ActionType::kSelectMap,
                     .worldspace = option.worldspace,
@@ -231,7 +200,8 @@ namespace WMS::MapChooser
             }
 
             if (page + 1 < pageCount) {
-                buttons.emplace_back("Next >>");
+                // The characters &lt; and &gt; are HTML-escaped to avoid confusing the message-box parser.
+                buttons.emplace_back("Next &gt;&gt;");
                 actions.push_back({
                     .type = ActionType::kNextPage,
                     .page = page + 1
@@ -243,10 +213,7 @@ namespace WMS::MapChooser
                 .type = ActionType::kCancel
             });
 
-            const auto message = fmt::format(
-                "Select World Map ({}/{})",
-                page + 1,
-                pageCount);
+            const auto message = fmt::format("Select World Map ({}/{})", page + 1, pageCount);
 
             {
                 std::scoped_lock lock(actionsLock);
@@ -254,63 +221,49 @@ namespace WMS::MapChooser
                 pendingActions = std::move(actions);
             }
 
-            if (!ClassicMessageBox::Open(
-                    message.c_str(),
-                    buttons,
-                    OnMessageBoxResult)) {
+            if (!ClassicMessageBox::Open(message.c_str(), buttons, OnMessageBoxResult)) {
                 {
                     std::scoped_lock lock(actionsLock);
                     pendingActions.clear();
                 }
-                SKSE::log::error(
-                    "Could not open the world-map chooser.");
+                SKSE::log::error("Could not open the world-map chooser.");
                 MapSwitchFlow::Cancel();
             }
         }
 
         void Open()
         {
-            auto* player =
-                RE::PlayerCharacter::GetSingleton();
+            auto* player = RE::PlayerCharacter::GetSingleton();
             auto* ui = RE::UI::GetSingleton();
             if (!player || !ui) {
-                SKSE::log::debug(
-                    "Ignored map chooser request because player or UI state is unavailable.");
+                SKSE::log::debug("Ignored map chooser request because player or UI state is unavailable.");
                 return;
             }
 
             // Never replace another message box's buttons or callback state.
-            // This includes fast-travel confirmations and custom-marker menus
-            // displayed over MapMenu.
+            // This includes fast-travel confirmations and custom-marker menus displayed over MapMenu.
             if (ui->IsMenuOpen(RE::MessageBoxMenu::MENU_NAME)) {
-                SKSE::log::trace(
-                    "Ignored map chooser request because another message box is open.");
+                SKSE::log::trace("Ignored map chooser request because another message box is open.");
                 return;
             }
 
             if (ui->IsMenuOpen(RE::MapMenu::MENU_NAME)) {
                 if (!Config::GetAllowChooserWhileMapOpen()) {
-                    SKSE::log::debug(
-                        "Ignored map chooser request while MapMenu is open; "
-                        "AllowChooserWhileMapOpen is false.");
-                    return;
+                    SKSE::log::debug("Ignored map chooser request while MapMenu is open; AllowChooserWhileMapOpen is false.");
+                } else {
+                    MapSwitchFlow::ConfigureInsideMap();
+                    ShowPage(0);
                 }
-
-                MapSwitchFlow::ConfigureInsideMap();
-                ShowPage(0);
                 return;
             }
 
-            if (ui->GameIsPaused() ||
-                ui->IsModalMenuOpen()) {
-                SKSE::log::trace(
-                    "Ignored map chooser request while another paused or modal menu is active.");
+            if (ui->GameIsPaused() || ui->IsModalMenuOpen()) {
+                SKSE::log::trace("Ignored map chooser request while another paused or modal menu is active.");
                 return;
             }
 
             // Choose whether a selection made outside MapMenu should open it.
-            MapSwitchFlow::ConfigureOutsideMap(
-                Config::GetOpenMapAfterSelection());
+            MapSwitchFlow::ConfigureOutsideMap(Config::GetOpenMapAfterSelection());
             ShowPage(0);
         }
 
@@ -318,78 +271,60 @@ namespace WMS::MapChooser
         class InputEventSink final :
             public RE::BSTEventSink<RE::InputEvent*>
         {
-        public:
-            RE::BSEventNotifyControl ProcessEvent(
-                RE::InputEvent* const* events,
-                RE::BSTEventSource<RE::InputEvent*>*) override
-            {
-                if (!events) {
-                    return RE::BSEventNotifyControl::kContinue;
-                }
+            public:
+                RE::BSEventNotifyControl ProcessEvent(RE::InputEvent* const* events, RE::BSTEventSource<RE::InputEvent*>*) override
+                {
+                    if (!events) return RE::BSEventNotifyControl::kContinue;
 
-                const auto configuredKey =
-                    Config::GetOpenSelectorKey();
+                    const auto configuredKey = Config::GetOpenSelectorKey();
 
-                // events points to the first pointer in Skyrim's linked list.
-                // Each event->next advances until a null pointer ends the list.
-                for (auto* event = *events;
-                     event;
-                     event = event->next) {
-                    // AsButtonEvent returns null when this input event is not a button.
-                    const auto* button =
-                        event->AsButtonEvent();
-                    if (!button ||
-                        button->device !=
-                            RE::INPUT_DEVICE::kKeyboard ||
-                        !button->IsDown()) {
-                        continue;
-                    }
+                    // events points to the first pointer in Skyrim's linked list.
+                    // Each event->next advances until a null pointer ends the list.
+                    for (auto* event = *events; event; event = event->next) {
+                        // AsButtonEvent returns null when this input event is not a button.
+                        const auto* button = event->AsButtonEvent();
+                        if (!button || button->device != RE::INPUT_DEVICE::kKeyboard || !button->IsDown()) {
+                            continue;
+                        }
 
-                    // Classic MessageBoxMenu only focuses its final button on
-                    // Escape. Explicitly invoke our known Cancel action so one
-                    // press dismisses the chooser without changing selection.
-                    if (button->GetIDCode() == 0x01) {
-                        std::optional<std::int32_t> cancelIndex;
-                        {
-                            std::scoped_lock lock(actionsLock);
-                            if (!pendingActions.empty() &&
-                                pendingActions.back().type ==
-                                    ActionType::kCancel) {
-                                // Convert the unsigned vector index to the signed
-                                // integer expected by SelectOption.
-                                cancelIndex = static_cast<std::int32_t>(pendingActions.size() - 1);
+						// Process Escape when the map chooser is open.
+                        // Classic MessageBoxMenu only focuses its final button on Escape.
+                        // Explicitly invoke our known Cancel action so one press dismisses the chooser without changing selection.
+                        if (button->GetIDCode() == 0x01) {
+                            std::optional<std::int32_t> cancelIndex;
+                            {
+                                std::scoped_lock lock(actionsLock);
+                                if (!pendingActions.empty() && pendingActions.back().type == ActionType::kCancel) {
+                                    // Convert the unsigned vector index to the signed integer expected by SelectOption.
+                                    cancelIndex = static_cast<std::int32_t>(pendingActions.size() - 1);
+                                }
+                            }
+
+                            if (cancelIndex) {
+                                SKSE::log::trace("Translated Escape into map chooser Cancel button {}.", *cancelIndex);
+                                RE::MessageBoxMenu::SelectOption(*cancelIndex);
+                                return RE::BSEventNotifyControl::kStop;
                             }
                         }
 
-                        if (cancelIndex) {
-                            // * extracts the integer held by the optional.
-                            SKSE::log::trace(
-                                "Translated Escape into map chooser Cancel button {}.",
-                                *cancelIndex);
-                            RE::MessageBoxMenu::SelectOption(*cancelIndex);
-                            return RE::BSEventNotifyControl::kStop;
+						// Process the configured hotkey only when the map chooser is not already open.
+                        if (configuredKey != 0 && button->GetIDCode() == configuredKey) {
+                            Open();
+                            break;
                         }
                     }
 
-                    if (configuredKey != 0 &&
-                        button->GetIDCode() == configuredKey) {
-                        Open();
-                        break;
-                    }
+                    return RE::BSEventNotifyControl::kContinue;
                 }
-
-                return RE::BSEventNotifyControl::kContinue;
-            }
         };
     }
 
+    // RegisterInputSink installs the hotkey listener.
     bool RegisterInputSink()
     {
-        auto* input =
-            RE::BSInputDeviceManager::GetSingleton();
+        auto* input = RE::BSInputDeviceManager::GetSingleton();
         if (!input) {
-            SKSE::log::error(
-                "Could not get the input-device manager.");
+            SKSE::log::error("Could not get the input-device manager.");
             return false;
         }
 
@@ -398,12 +333,11 @@ namespace WMS::MapChooser
         // & passes the sink's address to Skyrim rather than copying the object.
         input->AddEventSink(&inputEventSink);
 
-        SKSE::log::info(
-            "Registered map chooser hotkey 0x{:02X}.",
-            Config::GetOpenSelectorKey());
+        SKSE::log::info("Registered map chooser hotkey 0x{:02X}.", Config::GetOpenSelectorKey());
         return true;
     }
 
+    // OnMapMenuClosed returns true only when the close is an intermediate step in a requested switch.
     bool OnMapMenuClosed()
     {
         return MapSwitchFlow::OnMapMenuClosed();

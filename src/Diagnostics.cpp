@@ -2,6 +2,8 @@
 
 namespace WMS::Diagnostics
 {
+    // string_view borrows label text without copying it.
+    // The caller must keep that text alive for the duration of the call.
     void LogWorldspace(std::string_view label, const RE::TESWorldSpace* worldspace)
     {
         if (!worldspace) {
@@ -15,7 +17,10 @@ namespace WMS::Diagnostics
         const char* formattedName     = name && name[0] ? name : "<unnamed>";
 		const char* formattedEditorId = editorID && editorID[0] ? editorID : "<none>";
 
-        SKSE::log::debug("{} worldspace: name=\"{}\", editorID=\"{}\", FormID={:08X}", label, formattedName, formattedEditorId, worldspace->GetFormID());
+        SKSE::log::debug(
+            "{} worldspace: name=\"{}\", editorID=\"{}\", FormID={:08X}",
+            label, formattedName, formattedEditorId, worldspace->GetFormID()
+        );
     }
 
     void LogWorldspaceState()

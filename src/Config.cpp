@@ -13,10 +13,10 @@ namespace WMS::Config
 
         // Initialize the plugin configuration settings with their default values.
         // Missing or invalid INI entries leave these values unchanged.
-        auto logLevel = spdlog::level::info; // This default actually needs to be applied
+        auto logLevel                 = spdlog::level::info; // This default actually needs to be applied
         std::uint32_t openSelectorKey = 0x44;
-        bool openMapAfterSelection = true;
-        bool persistSelection = true;
+        bool openMapAfterSelection    = true;
+        bool persistSelection         = true;
         bool allowChooserWhileMapOpen = true;
 
         std::optional<spdlog::level::level_enum> ParseLogLevel(std::string_view text)
@@ -35,14 +35,14 @@ namespace WMS::Config
         {
             // Require the hexadecimal prefix documented in the INI,
             // then remove it from this non-owning view before parsing the remaining digits.
-            if (!text.starts_with("0x") && !text.starts_with("0X")) return std::nullopt;
+            if (!Utilities::HasHexPrefix(text)) return std::nullopt;
             text.remove_prefix(2);
             if (text.empty()) return std::nullopt;
 
             std::uint32_t parsed = 0;
-            const char* start = text.data();
-            const char* end = start + text.size();
-            const auto result = std::from_chars(start, end, parsed, 16);
+            const char* start    = text.data();
+            const char* end      = start + text.size();
+            const auto result    = std::from_chars(start, end, parsed, 16);
 
             // from_chars reports both a parsing error and where parsing stopped.
             // Require every character to be valid hex and the result to fit in one byte.
@@ -124,14 +124,9 @@ namespace WMS::Config
         ReadBool(ini, "PersistSelection", persistSelection);
 
         SKSE::log::info(
-            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, "
-            "OpenMapAfterSelection={}, AllowChooserWhileMapOpen={}, "
-            "PersistSelection={}.",
-            spdlog::level::to_string_view(logLevel),
-            openSelectorKey,
-            openMapAfterSelection,
-            allowChooserWhileMapOpen,
-            persistSelection);
+            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, OpenMapAfterSelection={}, AllowChooserWhileMapOpen={}, PersistSelection={}.",
+            spdlog::level::to_string_view(logLevel), openSelectorKey, openMapAfterSelection, allowChooserWhileMapOpen, persistSelection
+        );
     }
 
     // Public getters return copies so callers cannot modify the stored settings.

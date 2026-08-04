@@ -11,30 +11,22 @@ namespace WMS::MapSelection
         std::atomic<RE::TESWorldSpace*> selectedWorldspace = nullptr;
     }
 
-    void SelectDefault()
-    {
-        // release publishes the new selection to threads that later perform an acquire load.
-        // Storing nullptr clears the request.
-        selectedWorldspace.store(nullptr, std::memory_order_release);
-    }
+    // release publishes the new selection to threads that later perform an acquire load.
+    void Select(RE::TESWorldSpace* worldspace) { selectedWorldspace.store(worldspace, std::memory_order_release); }
 
-    void Select(RE::TESWorldSpace* worldspace)
-    {
-        selectedWorldspace.store(worldspace, std::memory_order_release);
-    }
+    // Storing nullptr clears the request.
+    // A null worldspace represents vanilla behavior rather than a particular map.
+    void SelectDefault() { Select(nullptr); }
 
+    // A non-persistent selection is consumed after a completed map session.
     void OnMapClosed()
     {
-        // A non-persistent selection is consumed after a completed map session.
         if (!Config::GetPersistSelection() && GetSelectedWorldspace()) {
             SelectDefault();
             SKSE::log::info("Cleared one-shot map selection.");
         }
     }
 
-    RE::TESWorldSpace* GetSelectedWorldspace()
-    {
-        // acquire ensures this thread observes the pointer published by store().
-        return selectedWorldspace.load(std::memory_order_acquire);
-    }
+    // acquire ensures this thread observes the pointer published by store().
+    RE::TESWorldSpace* GetSelectedWorldspace() { return selectedWorldspace.load(std::memory_order_acquire); }
 }

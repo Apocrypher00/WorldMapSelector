@@ -1,136 +1,87 @@
+#include "Hooks.h"
 #include "MapMarkerOverride.h"
 #include "WorldspaceOverride.h"
-
-#include <MinHook.h>
 
 namespace WMS::MapMarkerOverride
 {
     namespace
     {
-        // Vanilla's marker helpers call one another synchronously. Keeping this
-        // state thread-local prevents one marker rebuild from affecting another thread.
+        // Vanilla's marker helpers call one another synchronously.
+        // Keeping this state thread-local, prevents one marker rebuild from affecting another thread.
         thread_local RE::BSTArray<RE::ObjectRefHandle> selectedMapMarkerHandles;
         thread_local bool suppressPlayerMarkerLoop = false;
 
-        using CollectMapMarkerHandles_t = void (*)(
-            RE::TESWorldSpace*,
-            RE::BSTArray<RE::ObjectRefHandle>*,
-            bool
-        );
+        // Skyrim's native function to collect map marker handles from a worldspace.
+		// Takes the worldspace to collect from, a pointer to the destination array, and a boolean to include hidden markers.
+        using CollectMapMarkerHandles_t = void (*)(RE::TESWorldSpace*, RE::BSTArray<RE::ObjectRefHandle>*, bool);
+        static REL::Relocation<CollectMapMarkerHandles_t> collectMapMarkerHandles{ REL::ID(20536) };
 
-        using AddCurrentLocationMarker_t = void (*)(
-            RE::BSTArray<RE::MapMenuMarker>*,
-            RE::NiPoint3*
-        );
+		// Skyrim's native function to add the player's current location marker to the map.
+		// It takes a pointer to the destination array and a pointer to the player's marker position.
+        using AddCurrentLocationMarker_t = void (*)(RE::BSTArray<RE::MapMenuMarker>*, RE::NiPoint3*);
         AddCurrentLocationMarker_t originalAddCurrentLocationMarker = nullptr;
 
-        using AddMarkerFromHandle_t = std::uint64_t (*)(
-            RE::BSTArray<RE::MapMenuMarker>**,
-            RE::ObjectRefHandle*
-        );
+        // Skyrim's native function to add a marker from a handle to the map.
+		// It takes a pointer to the destination array and a pointer to the marker handle.
+        using AddMarkerFromHandle_t = std::uint64_t (*)(RE::BSTArray<RE::MapMenuMarker>**, RE::ObjectRefHandle*);
         AddMarkerFromHandle_t originalAddMarkerFromHandle = nullptr;
 
+		// Detour for vanilla's AddCurrentLocationMarker.
         // Vanilla calls this immediately before iterating the player's currentMapMarkers array.
-        // For a remote map, append markers collected from the selected worldspace,
-        // and omit the player's location marker.
-        void AddCurrentLocationMarkerHook(
-            RE::BSTArray<RE::MapMenuMarker>* mapMarkers,
-            RE::NiPoint3* playerMarkerPosition)
+        // For a remote map, append markers collected from the selected worldspace, and omit the player's location marker.
+        void AddCurrentLocationMarkerHook(RE::BSTArray<RE::MapMenuMarker>* mapMarkers, RE::NiPoint3* playerMarkerPosition)
         {
             suppressPlayerMarkerLoop = false;
+
             auto* selectedWorldspace = WorldspaceOverride::GetSelectedMapWorldspace();
 
+			// If we're not processing a remote map, call the original function to add the player's current location marker.
             if (!selectedWorldspace) {
                 originalAddCurrentLocationMarker(mapMarkers, playerMarkerPosition);
                 return;
             }
 
-            if (!mapMarkers) { return; }
+            if (!mapMarkers) return;
 
-            static REL::Relocation<CollectMapMarkerHandles_t> collectMapMarkerHandles{
-                REL::ID(20536)
-            };
+			// Collect all map marker handles from the selected worldspace.
+			selectedMapMarkerHandles.clear();
+            collectMapMarkerHandles(selectedWorldspace, std::addressof(selectedMapMarkerHandles), false);
 
-            selectedMapMarkerHandles.clear();
-            collectMapMarkerHandles(
-                selectedWorldspace,
-                std::addressof(selectedMapMarkerHandles),
-                false
-            );
-
+			// Append the collected handles to the mapMarkers array, using the original AddMarkerFromHandle function.
             const auto markerCountBefore = mapMarkers->size();
             auto* destination = mapMarkers;
             for (auto& handle : selectedMapMarkerHandles) {
-                originalAddMarkerFromHandle(
-                    std::addressof(destination),
-                    std::addressof(handle)
-                );
+                originalAddMarkerFromHandle(std::addressof(destination), std::addressof(handle));
             }
 
             suppressPlayerMarkerLoop = true;
+
             SKSE::log::debug(
-                "Remote map {:08X}: omitted current location; collected {} "
-                "handles and added {} markers.",
-                selectedWorldspace->GetFormID(),
-                selectedMapMarkerHandles.size(),
-                mapMarkers->size() - markerCountBefore
+                "Remote map {:08X}: omitted current location; collected {} handles and added {} markers.",
+                selectedWorldspace->GetFormID(), selectedMapMarkerHandles.size(), mapMarkers->size() - markerCountBefore
             );
         }
 
-        std::uint64_t AddMarkerFromHandleHook(
-            RE::BSTArray<RE::MapMenuMarker>** destination,
-            RE::ObjectRefHandle* handle)
+		// Detour for vanilla's AddMarkerFromHandle.
+        // Returning zero from this function tells the caller to stop iterating currentMapMarkers.
+        // The selected markers were already appended by AddCurrentLocationMarkerHook.
+        std::uint64_t AddMarkerFromHandleHook(RE::BSTArray<RE::MapMenuMarker>** destination, RE::ObjectRefHandle* handle)
         {
-            // Returning zero from the first following call tells vanilla's
-            // currentMapMarkers loop to stop. The selected markers were
-            // already appended by AddCurrentLocationMarkerHook.
             if (suppressPlayerMarkerLoop) {
                 suppressPlayerMarkerLoop = false;
                 return 0;
+            } else {
+                return originalAddMarkerFromHandle(destination, handle);
             }
-
-            return originalAddMarkerFromHandle(destination, handle);
         }
     }
 
+    // Creates the ordinary world-marker detours in a disabled state.
     bool CreateHooks()
     {
-        REL::Relocation<std::uintptr_t> addCurrentLocationMarker{
-            REL::ID(53076)
-        };
-        REL::Relocation<std::uintptr_t> addMarkerFromHandle{
-            REL::ID(53126)
-        };
-
-        const auto createCurrentLocationStatus = MH_CreateHook(
-            reinterpret_cast<void*>(addCurrentLocationMarker.address()),
-            reinterpret_cast<void*>(AddCurrentLocationMarkerHook),
-            reinterpret_cast<void**>(&originalAddCurrentLocationMarker)
+        return (
+            Hooks::Create("AddCurrentLocationMarker", REL::ID(53076), AddCurrentLocationMarkerHook, originalAddCurrentLocationMarker) &&
+            Hooks::Create("AddMarkerFromHandle",      REL::ID(53126), AddMarkerFromHandleHook,      originalAddMarkerFromHandle     )
         );
-        if (createCurrentLocationStatus != MH_OK) {
-            SKSE::log::error(
-                "Current-location marker hook creation failed: {}",
-                MH_StatusToString(createCurrentLocationStatus));
-            return false;
-        }
-
-        const auto createMarkerStatus = MH_CreateHook(
-            reinterpret_cast<void*>(addMarkerFromHandle.address()),
-            reinterpret_cast<void*>(AddMarkerFromHandleHook),
-            reinterpret_cast<void**>(&originalAddMarkerFromHandle)
-        );
-        if (createMarkerStatus != MH_OK) {
-            SKSE::log::error(
-                "Marker-from-handle hook creation failed: {}",
-                MH_StatusToString(createMarkerStatus));
-            return false;
-        }
-
-        SKSE::log::info(
-            "Created ordinary MapMenu marker detours at {:X} and {:X}.",
-            addCurrentLocationMarker.address(),
-            addMarkerFromHandle.address()
-        );
-        return true;
     }
 }

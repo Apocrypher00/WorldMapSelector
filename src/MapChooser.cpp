@@ -38,6 +38,7 @@ namespace WMS::MapChooser
         // so preserve the matching actions until the callback arrives.
         std::mutex actionsLock;
         std::vector<Action> pendingActions;
+        bool chooserActive = false;
 
         // Return the most authoritative available source, falling back as needed.
         RE::TESWorldSpace* GetCurrentWorldspace()
@@ -133,6 +134,7 @@ namespace WMS::MapChooser
                     action = pendingActions[button];
                 }
                 pendingActions.clear();
+                chooserActive = false;
             }
 
             if (action) {
@@ -219,13 +221,20 @@ namespace WMS::MapChooser
                 std::scoped_lock lock(actionsLock);
                 // Transfer the completed vector into callback-visible storage.
                 pendingActions = std::move(actions);
+                // The message box is not ours until Create confirms that it opened.
+                chooserActive = false;
             }
 
-            if (!ClassicMessageBox::Open(message.c_str(), buttons, OnMessageBoxResult)) {
-                {
-                    std::scoped_lock lock(actionsLock);
+            const bool opened = ClassicMessageBox::Open(message.c_str(), buttons, OnMessageBoxResult);
+            {
+                std::scoped_lock lock(actionsLock);
+                chooserActive = opened;
+                if (!opened) {
                     pendingActions.clear();
                 }
+            }
+
+            if (!opened) {
                 SKSE::log::error("Could not open the world-map chooser.");
                 MapSwitchFlow::Cancel();
             }
@@ -278,10 +287,13 @@ namespace WMS::MapChooser
     // Select our known Cancel button explicitly so one press dismisses the chooser without changing selection.
     bool SelectCancelButton()
     {
+        auto* ui = RE::UI::GetSingleton();
+        if (!ui || !ui->IsMenuOpen(RE::MessageBoxMenu::MENU_NAME)) return false;
+
         std::optional<std::int32_t> cancelIndex;
         {
             std::scoped_lock lock(actionsLock);
-            if (!pendingActions.empty() && pendingActions.back().type == ActionType::kCancel) {
+            if (chooserActive && !pendingActions.empty() && pendingActions.back().type == ActionType::kCancel) {
                 // Convert the unsigned vector index to the signed integer expected by SelectOption.
                 cancelIndex = static_cast<std::int32_t>(pendingActions.size() - 1);
             }

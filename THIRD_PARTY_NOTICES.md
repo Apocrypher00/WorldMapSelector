@@ -36,12 +36,18 @@ submodule at `extern/CommonLibVR/LICENSE`. Exact license texts for vcpkg
 dependencies are installed under each package's `share/<package>/copyright`
 path during the build.
 
-Binary release archives must include the applicable copyright and license
-texts for all linked third-party components. In particular, the MinHook and
-BSD-licensed components require their notices and disclaimers to accompany
-binary redistributions. Before packaging a public binary release, copy the
-copyright files from the resolved vcpkg installation into the release's
-license-notices directory.
+Binary distributions must be accompanied by the applicable copyright and
+license texts for linked third-party components. In particular, the MinHook
+and BSD-licensed components require their notices and disclaimers to accompany
+binary redistributions.
+
+For a public mod archive, consolidate those required texts into a
+WorldMapSelector-specific notice file beneath
+`SKSE/Plugins/WorldMapSelector/`. Do not place generic files such as
+`LICENSE`, `COPYING`, or `README` at the archive root: mod managers treat the
+archive as a `Data`-directory payload, and generic names can collide with files
+from unrelated mods. This repository's summary is not a replacement for the
+complete license texts that must accompany the binary release.
 
 Build tools such as CMake, Ninja, vcpkg, Git, and Microsoft Visual C++ are not
 redistributed as part of WorldMapSelector.

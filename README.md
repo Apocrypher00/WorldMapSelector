@@ -12,13 +12,16 @@ by some other means.
 - Discovers worldspaces with usable world-map data, including maps added by
   other mods.
 - Switches the world-map scene, camera, and marker collection together.
+- Displays ordinary, quest, and custom destination markers on the selected
+  world map.
 - Supports cross-worldspace fast travel through ordinary map markers.
-- Provides a dependency-free in-game map chooser using Skyrim's built-in UI.
+- Provides an in-game map chooser using Skyrim's built-in UI, without requiring
+  SkyUI or another UI framework.
 - Marks the player's current world in the chooser.
 - Supports paginated map lists and duplicate-name disambiguation.
 - Can open the chooser while MapMenu is already visible.
 - Supports persistent or one-shot map selections.
-- Requires no ESP, Papyrus scripts, or SkyUI.
+- Requires no ESP or Papyrus scripts.
 
 ## Compatibility
 
@@ -40,22 +43,23 @@ Edition runtimes should not be assumed compatible.
 
 - [SKSE64](https://skse.silverlock.org/) matching the installed Skyrim runtime
 - [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
-- Microsoft Visual C++ 2015-2022 Redistributable (x64)
+- [Latest Microsoft Visual C++ Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
 
 CommonLibSSE NG and MinHook are linked into the plugin; users do not install
 them separately.
 
 ## Installation
 
-Install a release archive with Mod Organizer 2 or Vortex, or copy the packaged
-files into the following locations:
+Install the release archive with Mod Organizer 2 or Vortex. For a manual
+installation, copy the archive's contents into Skyrim's `Data` directory.
+
+The archive is laid out relative to `Data`:
 
 ```text
-Data/
-└── SKSE/
-    └── Plugins/
-        ├── WorldMapSelector.dll
-        └── WorldMapSelector.ini
+SKSE/
+└── Plugins/
+    ├── WorldMapSelector.dll
+    └── WorldMapSelector.ini
 ```
 
 Launch Skyrim through SKSE.
@@ -70,38 +74,28 @@ Press `F10` to open the map chooser.
 - When both are the same, the map is marked `[Here/Selected]`.
 - Selecting the map marked `[Here]` stores it as an explicit selection; this
   allows that map to remain selected after the player travels elsewhere.
-- Selecting a map can open it immediately.
+- By default, selecting a map outside MapMenu opens it immediately.
 - Pressing `F10` while MapMenu is open displays the chooser over the map.
 - Selecting a different map while MapMenu is open closes and rebuilds MapMenu
   with the new world.
 
-The hotkey uses a DirectInput keyboard scan code and can be changed in the INI.
+The hotkey uses a DirectInput keyboard code and can be changed in the INI.
 
 ## Configuration
 
-`WorldMapSelector.ini`:
+The included `WorldMapSelector.ini` documents every setting and its valid
+values. Its defaults are:
 
-```ini
-[General]
-; Valid levels: Trace, Debug, Info, Warn, Err, Critical, Off
-LogLevel=Info
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `LogLevel` | `Info` | Controls plugin log verbosity. |
+| `OpenSelectorKey` | `0x44` | Sets the DirectInput keyboard code for the chooser hotkey. `0x44` is F10; `0x00` disables it. |
+| `OpenMapAfterSelection` | `true` | Opens the selected map immediately when choosing outside MapMenu. |
+| `PersistSelection` | `true` | Keeps the selected map after MapMenu closes. |
+| `AllowChooserWhileMapOpen` | `true` | Allows the chooser hotkey while MapMenu is visible. |
 
-[Controls]
-; DirectInput keyboard scan code in hexadecimal (0x00 through 0xFF).
-; 0x44 is F10. Set to 0x00 to disable the built-in chooser hotkey.
-OpenSelectorKey=0x44
-
-[Behavior]
-; Open the selected map immediately when choosing outside MapMenu.
-OpenMapAfterSelection=true
-
-; Keep the selected remote map after MapMenu closes.
-; When false, the selection applies to one map session.
-PersistSelection=true
-
-; Permit the chooser while MapMenu is already visible.
-AllowChooserWhileMapOpen=true
-```
+See the [DirectInput keyboard code reference](https://community.bistudio.com/wiki/DIK_KeyCodes)
+when choosing another hotkey.
 
 Configuration is loaded once when the plugin starts. Restart Skyrim after
 changing any INI setting.
@@ -109,7 +103,8 @@ changing any INI setting.
 ## Known Issues
 
 - Only Steam runtime `1.6.1170` has received substantial testing so far.
-- Compatibility with heavily modified map interfaces needs broader testing.
+- Compatibility with custom replacements for the MapMenu interface needs
+  broader testing.
 
 Please include `WorldMapSelector.log`, the Skyrim runtime version, and a mod
 list when reporting a problem.
@@ -124,7 +119,7 @@ Documents/My Games/Skyrim Special Edition/SKSE/WorldMapSelector.log
 
 ### Prerequisites
 
-- Visual Studio with the x64 C++ desktop toolchain
+- Visual Studio 2026 with the Desktop development with C++ workload
 - CMake 3.21 or newer
 - Ninja
 - Git
@@ -133,7 +128,7 @@ Documents/My Games/Skyrim Special Edition/SKSE/WorldMapSelector.log
 Clone recursively so the CommonLib submodule is present:
 
 ```powershell
-git clone --recurse-submodules <repository-url>
+git clone --recurse-submodules https://github.com/Apocrypher00/WorldMapSelector.git
 cd WorldMapSelector
 ```
 
@@ -184,3 +179,12 @@ CommonLibSSE NG:
 The project is configured and built with CMake, Ninja, vcpkg, and Microsoft
 Visual C++. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for license
 and attribution information.
+
+## Development acknowledgement
+
+WorldMapSelector began with the author's original pre-Anniversary Edition
+prototype and reverse-engineering work. The current C++ implementation was
+developed primarily in collaboration with OpenAI's ChatGPT and Codex. The
+author directed the design and reverse engineering, reviewed and revised the
+source, and performed the in-game testing. GitHub Copilot also assisted with
+parts of the early Visual Studio and CMake setup.

@@ -18,25 +18,10 @@ namespace WMS::WorldspaceCatalog
             return text && text[0] ? text : std::string(fallback);
         }
 
-        RE::TESWorldSpace* ResolveMapOwner(RE::TESWorldSpace* worldspace)
-        {
-            // Child worldspaces such as Whiterun can explicitly reuse their parent's map data.
-            // The chooser should list the owning map once.
-            auto* owner = worldspace;
-
-            // Follow the parent only when this worldspace explicitly inherits the parent's map data.
-            // The final pointer owns the displayed map.
-            while (owner && owner->parentWorld && owner->parentUseFlags.any(RE::TESWorldSpace::ParentUseFlag::kUseMapData)) {
-                owner = owner->parentWorld;
-            }
-
-            return owner;
-        }
-
         bool IsMapCandidate(RE::TESWorldSpace* worldspace)
         {
 			// Only list worldspaces that own their own map data.
-            if (!worldspace || ResolveMapOwner(worldspace) != worldspace) return false;
+            if (!worldspace || GetMapOwner(worldspace) != worldspace) return false;
 
             // A usable world map needs non-degenerate cell bounds.
             // This also admits map data supplied to normally mapless worlds by mods.
@@ -141,7 +126,17 @@ namespace WMS::WorldspaceCatalog
 
     RE::TESWorldSpace* GetMapOwner(RE::TESWorldSpace* worldspace)
     {
-        return ResolveMapOwner(worldspace);
+        // Child worldspaces such as Whiterun can explicitly reuse their parent's map data.
+        // The chooser should list the owning map once.
+        auto* owner = worldspace;
+
+        // Follow the parent only when this worldspace explicitly inherits the parent's map data.
+        // The final pointer owns the displayed map.
+        while (owner && owner->parentWorld && owner->parentUseFlags.any(RE::TESWorldSpace::ParentUseFlag::kUseMapData)) {
+            owner = owner->parentWorld;
+        }
+
+        return owner;
     }
 
     std::vector<MapOption> GetOrderedOptions(RE::TESWorldSpace* currentWorldspace, RE::TESWorldSpace* selectedWorldspace)
@@ -153,8 +148,8 @@ namespace WMS::WorldspaceCatalog
 
         std::ranges::sort(result, CompareMapOptions);
 
-        auto* currentMap  = ResolveMapOwner(currentWorldspace);
-        auto* selectedMap = ResolveMapOwner(selectedWorldspace);
+        auto* currentMap  = GetMapOwner(currentWorldspace);
+        auto* selectedMap = GetMapOwner(selectedWorldspace);
 
         // Keep the useful status entries first; the remaining entries retain
         // the case-insensitive alphabetical ordering established above.

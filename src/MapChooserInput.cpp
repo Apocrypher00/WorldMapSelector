@@ -1,0 +1,64 @@
+#include "Config.h"
+#include "MapChooser.h"
+#include "MapChooserInput.h"
+
+namespace WMS::MapChooserInput
+{
+    namespace
+    {
+        // The sink receives linked lists of input events from Skyrim.
+        class InputEventSink final : public RE::BSTEventSink<RE::InputEvent*>
+        {
+            public:
+                RE::BSEventNotifyControl ProcessEvent(RE::InputEvent* const* events, RE::BSTEventSource<RE::InputEvent*>*) override
+                {
+                    if (!events) return RE::BSEventNotifyControl::kContinue;
+
+                    const auto configuredKey = Config::GetOpenSelectorKey();
+
+                    // events points to the first pointer in Skyrim's linked list.
+                    // Each event->next advances until a null pointer ends the list.
+                    for (auto* event = *events; event; event = event->next) {
+                        // AsButtonEvent returns null when this input event is not a button.
+                        const auto* button = event->AsButtonEvent();
+                        if (!button || button->device != RE::INPUT_DEVICE::kKeyboard || !button->IsDown()) {
+                            continue;
+                        }
+
+                        // Process Escape when the map chooser is open.
+                        // SelectCancelButton returns false when no chooser actions are awaiting a response.
+                        if (button->GetIDCode() == 0x01 && MapChooser::SelectCancelButton()) {
+                            return RE::BSEventNotifyControl::kStop;
+                        }
+
+                        // Process the configured hotkey only when the map chooser is not already open.
+                        // MapChooser::Open performs the menu-state checks before displaying anything.
+                        if (configuredKey != 0 && button->GetIDCode() == configuredKey) {
+                            MapChooser::Open();
+                            break;
+                        }
+                    }
+
+                    return RE::BSEventNotifyControl::kContinue;
+                }
+        };
+    }
+
+    // Register installs the hotkey and Escape listener.
+    bool Register()
+    {
+        auto* input = RE::BSInputDeviceManager::GetSingleton();
+        if (!input) {
+            SKSE::log::error("Could not get the input-device manager.");
+            return false;
+        }
+
+        // Static lifetime keeps the registered sink alive for the whole process.
+        static InputEventSink inputEventSink;
+        // & passes the sink's address to Skyrim rather than copying the object.
+        input->AddEventSink(&inputEventSink);
+
+        SKSE::log::info("Registered map chooser hotkey 0x{:02X}.", Config::GetOpenSelectorKey());
+        return true;
+    }
+}

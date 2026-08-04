@@ -231,7 +231,7 @@ namespace WMS::MapChooser
             }
         }
 
-        void Open()
+        void OpenChooser()
         {
             auto* player = RE::PlayerCharacter::GetSingleton();
             auto* ui = RE::UI::GetSingleton();
@@ -267,79 +267,30 @@ namespace WMS::MapChooser
             ShowPage(0);
         }
 
-        // The sink receives linked lists of input events from Skyrim.
-        class InputEventSink final :
-            public RE::BSTEventSink<RE::InputEvent*>
-        {
-            public:
-                RE::BSEventNotifyControl ProcessEvent(RE::InputEvent* const* events, RE::BSTEventSource<RE::InputEvent*>*) override
-                {
-                    if (!events) return RE::BSEventNotifyControl::kContinue;
-
-                    const auto configuredKey = Config::GetOpenSelectorKey();
-
-                    // events points to the first pointer in Skyrim's linked list.
-                    // Each event->next advances until a null pointer ends the list.
-                    for (auto* event = *events; event; event = event->next) {
-                        // AsButtonEvent returns null when this input event is not a button.
-                        const auto* button = event->AsButtonEvent();
-                        if (!button || button->device != RE::INPUT_DEVICE::kKeyboard || !button->IsDown()) {
-                            continue;
-                        }
-
-						// Process Escape when the map chooser is open.
-                        // Classic MessageBoxMenu only focuses its final button on Escape.
-                        // Explicitly invoke our known Cancel action so one press dismisses the chooser without changing selection.
-                        if (button->GetIDCode() == 0x01) {
-                            std::optional<std::int32_t> cancelIndex;
-                            {
-                                std::scoped_lock lock(actionsLock);
-                                if (!pendingActions.empty() && pendingActions.back().type == ActionType::kCancel) {
-                                    // Convert the unsigned vector index to the signed integer expected by SelectOption.
-                                    cancelIndex = static_cast<std::int32_t>(pendingActions.size() - 1);
-                                }
-                            }
-
-                            if (cancelIndex) {
-                                SKSE::log::trace("Translated Escape into map chooser Cancel button {}.", *cancelIndex);
-                                RE::MessageBoxMenu::SelectOption(*cancelIndex);
-                                return RE::BSEventNotifyControl::kStop;
-                            }
-                        }
-
-						// Process the configured hotkey only when the map chooser is not already open.
-                        if (configuredKey != 0 && button->GetIDCode() == configuredKey) {
-                            Open();
-                            break;
-                        }
-                    }
-
-                    return RE::BSEventNotifyControl::kContinue;
-                }
-        };
     }
 
-    // RegisterInputSink installs the hotkey listener.
-    bool RegisterInputSink()
+    void Open()
     {
-        auto* input = RE::BSInputDeviceManager::GetSingleton();
-        if (!input) {
-            SKSE::log::error("Could not get the input-device manager.");
-            return false;
+        OpenChooser();
+    }
+
+    // Classic MessageBoxMenu only focuses its final button on Escape.
+    // Select our known Cancel button explicitly so one press dismisses the chooser without changing selection.
+    bool SelectCancelButton()
+    {
+        std::optional<std::int32_t> cancelIndex;
+        {
+            std::scoped_lock lock(actionsLock);
+            if (!pendingActions.empty() && pendingActions.back().type == ActionType::kCancel) {
+                // Convert the unsigned vector index to the signed integer expected by SelectOption.
+                cancelIndex = static_cast<std::int32_t>(pendingActions.size() - 1);
+            }
         }
 
-        // Static lifetime keeps the registered sink alive for the whole process.
-        static InputEventSink inputEventSink;
-        // & passes the sink's address to Skyrim rather than copying the object.
-        input->AddEventSink(&inputEventSink);
+        if (!cancelIndex) return false;
 
-        SKSE::log::info("Registered map chooser hotkey 0x{:02X}.", Config::GetOpenSelectorKey());
+        SKSE::log::trace("Translated Escape into map chooser Cancel button {}.", *cancelIndex);
+        RE::MessageBoxMenu::SelectOption(*cancelIndex);
         return true;
-    }
-
-    // OnMapMenuClosed returns true only when the close is an intermediate step in a requested switch.
-    bool OnMapMenuClosed()
-    {
-        return MapSwitchFlow::OnMapMenuClosed();
     }
 }

@@ -1,6 +1,6 @@
 #include "Config.h"
 #include "Hooks.h"
-#include "MapChooser.h"
+#include "MapChooserInput.h"
 #include "MapMenuEvents.h"
 #include "MapMarkerOverride.h"
 #include "RoutedMarkerOverride.h"
@@ -19,7 +19,7 @@ namespace
         if (message->type == SKSE::MessagingInterface::kInputLoaded) {
             // Skyrim's input devices and input event source now exist,
             // so the chooser can safely register its keyboard listener.
-            WMS::MapChooser::RegisterInputSink();
+            WMS::MapChooserInput::Register();
         } else if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             // Every active plugin has finished loading and its forms have their final runtime FormIDs,
             // so it is now safe to build the map catalogue.

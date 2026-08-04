@@ -34,6 +34,8 @@ add_commonlibsse_plugin(
         src/Hooks.cpp
         src/Hooks.h
         src/MapChooser.cpp
+        src/MapChooserInput.cpp
+        src/MapChooserInput.h
         src/MapMenuEvents.cpp
         src/MapMarkerOverride.cpp
         src/MapSelection.cpp

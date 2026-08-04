@@ -2,6 +2,6 @@
 
 namespace WMS::MapChooser
 {
-    bool RegisterInputSink();
-    bool OnMapMenuClosed();
+    void Open();
+    bool SelectCancelButton();
 }

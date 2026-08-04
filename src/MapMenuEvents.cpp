@@ -1,7 +1,7 @@
 #include "Diagnostics.h"
-#include "MapChooser.h"
 #include "MapMenuEvents.h"
 #include "MapSelection.h"
+#include "MapSwitchFlow.h"
 #include "WorldspaceOverride.h"
 
 namespace WMS::MapMenuEvents
@@ -33,7 +33,7 @@ namespace WMS::MapMenuEvents
 
                         // A map switch deliberately closes and reopens MapMenu.
                         // Do not consume a one-shot selection during that handoff.
-                        if (!MapChooser::OnMapMenuClosed()) {
+                        if (!MapSwitchFlow::OnMapMenuClosed()) {
                             MapSelection::OnMapClosed();
                         }
                     }

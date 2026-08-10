@@ -1,3 +1,4 @@
+#include "Config.h"
 #include "Utilities.h"
 #include "WorldspaceCatalog.h"
 
@@ -90,6 +91,12 @@ namespace WMS::WorldspaceCatalog
         for (auto* worldspace : dataHandler->GetFormArray<RE::TESWorldSpace>()) {
             if (!IsMapCandidate(worldspace)) continue;
 
+            const auto editorID = SafeText(worldspace->GetFormEditorID(), "");
+            if (Config::IsWorldspaceExcluded(editorID)) {
+                SKSE::log::debug("Excluded map candidate editorID=\"{}\", FormID={:08X}.", editorID, worldspace->GetFormID());
+                continue;
+            }
+
             const auto* file = worldspace->GetFile(0);
             if (!file) {
                 SKSE::log::warn("Ignoring dynamic map candidate {:08X}; it has no originating plugin.", worldspace->GetFormID());
@@ -100,7 +107,7 @@ namespace WMS::WorldspaceCatalog
             newEntries.push_back({
                 .worldspace  = worldspace,
                 .displayName = SafeText(worldspace->GetName(), "<unnamed>"),
-                .editorID    = SafeText(worldspace->GetFormEditorID(), ""),
+                .editorID    = editorID,
                 .pluginName  = std::string(file->GetFilename())
             });
         }

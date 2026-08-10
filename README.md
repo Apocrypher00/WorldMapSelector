@@ -93,6 +93,7 @@ values. Its defaults are:
 | `OpenMapAfterSelection` | `true` | Opens the selected map immediately when choosing outside MapMenu. |
 | `PersistSelection` | `true` | Keeps the selected map after MapMenu closes. |
 | `AllowChooserWhileMapOpen` | `true` | Allows the chooser hotkey while MapMenu is visible. |
+| `ExcludedWorldspaces` | `Falskaar` | Comma-separated EditorIDs that are omitted from the map chooser. |
 
 See the [DirectInput keyboard code reference](https://community.bistudio.com/wiki/DIK_KeyCodes)
 when choosing another hotkey.
@@ -103,6 +104,9 @@ changing any INI setting.
 ## Known Issues
 
 - Only Steam runtime `1.6.1170` has received substantial testing so far.
+- **Falskaar is incompatible with remote map selection.** Opening its remote map
+  can leave Skyrim unable to complete later world transitions. Falskaar is
+  excluded by default; removing it from `ExcludedWorldspaces` is not recommended.
 - Compatibility with custom replacements for the MapMenu interface needs
   broader testing.
 

@@ -18,6 +18,7 @@ namespace WMS::Config
         bool openMapAfterSelection    = true;
         bool persistSelection         = true;
         bool allowChooserWhileMapOpen = true;
+        std::vector<std::string> excludedWorldspaces { "Falskaar" };
 
         std::optional<spdlog::level::level_enum> ParseLogLevel(std::string_view text)
         {
@@ -58,6 +59,17 @@ namespace WMS::Config
             if (Utilities::EqualsIgnoreCase(text, "true"))  return true;
             if (Utilities::EqualsIgnoreCase(text, "false")) return false;
             return std::nullopt;
+        }
+
+        std::string_view Trim(std::string_view text)
+        {
+            const auto isWhitespace = [](char character) {
+                return character == ' ' || character == '\t' || character == '\r' || character == '\n';
+            };
+
+            while (!text.empty() && isWhitespace(text.front())) text.remove_prefix(1);
+            while (!text.empty() && isWhitespace(text.back())) text.remove_suffix(1);
+            return text;
         }
 
         // Set the global log level and flush policy for spdlog.
@@ -101,6 +113,27 @@ namespace WMS::Config
             }
             else { SKSE::log::debug("{} not specified. Keeping default.", key); }
         }
+
+        void ReadExcludedWorldspaces(const CSimpleIniA& ini)
+        {
+            const char* configured = ini.GetValue("Compatibility", "ExcludedWorldspaces");
+            if (!configured) {
+                SKSE::log::debug("ExcludedWorldspaces not specified. Keeping default Falskaar exclusion.");
+                return;
+            }
+
+            excludedWorldspaces.clear();
+            std::string_view remaining = configured;
+
+            while (true) {
+                const auto separator = remaining.find(',');
+                const auto editorID = Trim(remaining.substr(0, separator));
+                if (!editorID.empty()) excludedWorldspaces.emplace_back(editorID);
+
+                if (separator == std::string_view::npos) break;
+                remaining.remove_prefix(separator + 1);
+            }
+        }
     }
 
     // Load the INI file and replace defaults only with settings that exist and parse successfully.
@@ -122,10 +155,12 @@ namespace WMS::Config
         ReadBool(ini, "OpenMapAfterSelection", openMapAfterSelection);
         ReadBool(ini, "AllowChooserWhileMapOpen", allowChooserWhileMapOpen);
         ReadBool(ini, "PersistSelection", persistSelection);
+        ReadExcludedWorldspaces(ini);
 
         SKSE::log::info(
-            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, OpenMapAfterSelection={}, AllowChooserWhileMapOpen={}, PersistSelection={}.",
-            spdlog::level::to_string_view(logLevel), openSelectorKey, openMapAfterSelection, allowChooserWhileMapOpen, persistSelection
+            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, OpenMapAfterSelection={}, AllowChooserWhileMapOpen={}, PersistSelection={}, ExcludedWorldspaces={}.",
+            spdlog::level::to_string_view(logLevel), openSelectorKey, openMapAfterSelection, allowChooserWhileMapOpen, persistSelection,
+            excludedWorldspaces.empty() ? "<none>" : fmt::format("{} entr{}", excludedWorldspaces.size(), excludedWorldspaces.size() == 1 ? "y" : "ies")
         );
     }
 
@@ -134,4 +169,8 @@ namespace WMS::Config
     bool GetOpenMapAfterSelection()    { return openMapAfterSelection; }
     bool GetPersistSelection()         { return persistSelection; }
     bool GetAllowChooserWhileMapOpen() { return allowChooserWhileMapOpen; }
+    bool IsWorldspaceExcluded(std::string_view editorID)
+    {
+        return std::ranges::any_of(excludedWorldspaces, [&](const auto& excluded) { return Utilities::EqualsIgnoreCase(editorID, excluded); });
+    }
 }

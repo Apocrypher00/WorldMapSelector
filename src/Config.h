@@ -7,4 +7,5 @@ namespace WMS::Config
     bool GetOpenMapAfterSelection();
     bool GetPersistSelection();
     bool GetAllowChooserWhileMapOpen();
+    bool IsWorldspaceExcluded(std::string_view editorID);
 }

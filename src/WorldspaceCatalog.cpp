@@ -92,6 +92,11 @@ namespace WMS::WorldspaceCatalog
             if (!IsMapCandidate(worldspace)) continue;
 
             const auto editorID = SafeText(worldspace->GetFormEditorID(), "");
+            if (!Config::IsWorldspaceIncluded(editorID)) {
+                SKSE::log::debug("Map candidate is not included: editorID=\"{}\", FormID={:08X}.", editorID, worldspace->GetFormID());
+                continue;
+            }
+
             if (Config::IsWorldspaceExcluded(editorID)) {
                 SKSE::log::debug("Excluded map candidate editorID=\"{}\", FormID={:08X}.", editorID, worldspace->GetFormID());
                 continue;

@@ -94,7 +94,11 @@ values. Its defaults are:
 | `PersistSelection` | `true` | Keeps the selected map after MapMenu closes. |
 | `AllowChooserOutsideMap` | `true` | Allows the chooser hotkey during normal gameplay. Set it to `false` to make the hotkey map-only. |
 | `AllowChooserWhileMapOpen` | `true` | Allows the chooser hotkey while MapMenu is visible. |
+| `IncludedWorldspaces` | *(empty)* | Comma-separated EditorIDs allowed in the chooser. An empty value includes every valid map. |
 | `ExcludedWorldspaces` | `Falskaar` | Comma-separated EditorIDs that are omitted from the map chooser. |
+
+Worldspace lists are case-insensitive. When an EditorID appears in both lists,
+`ExcludedWorldspaces` takes priority.
 
 See the [DirectInput keyboard code reference](https://community.bistudio.com/wiki/DIK_KeyCodes)
 when choosing another hotkey.

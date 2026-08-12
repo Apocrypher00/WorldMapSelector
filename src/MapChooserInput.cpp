@@ -1,6 +1,7 @@
 #include "Config.h"
 #include "MapChooser.h"
 #include "MapChooserInput.h"
+#include "MapMenuKeyHint.h"
 
 namespace WMS::MapChooserInput
 {
@@ -12,6 +13,8 @@ namespace WMS::MapChooserInput
             public:
                 RE::BSEventNotifyControl ProcessEvent(RE::InputEvent* const* events, RE::BSTEventSource<RE::InputEvent*>*) override
                 {
+                    static std::optional<bool> previousGamepadMode;
+
                     if (!events) return RE::BSEventNotifyControl::kContinue;
 
                     const auto configuredKey = Config::GetOpenSelectorKey();
@@ -19,6 +22,18 @@ namespace WMS::MapChooserInput
                     // events points to the first pointer in Skyrim's linked list.
                     // Each event->next advances until a null pointer ends the list.
                     for (auto* event = *events; event; event = event->next) {
+                        // SkyUI rebuilds its MapMenu button panel when input changes between
+                        // keyboard/mouse and controller. Restore our keyboard hint after that rebuild.
+                        const bool usesGamepad = event->device == RE::INPUT_DEVICE::kGamepad;
+                        const bool usesKeyboardOrMouse =
+                            event->device == RE::INPUT_DEVICE::kKeyboard || event->device == RE::INPUT_DEVICE::kMouse;
+
+                        if ((usesGamepad || usesKeyboardOrMouse) &&
+                            (!previousGamepadMode || *previousGamepadMode != usesGamepad)) {
+                            previousGamepadMode = usesGamepad;
+                            MapMenuKeyHint::RefreshAfterInputModeChange();
+                        }
+
                         // AsButtonEvent returns null when this input event is not a button.
                         const auto* button = event->AsButtonEvent();
                         if (!button || button->device != RE::INPUT_DEVICE::kKeyboard || !button->IsDown()) {

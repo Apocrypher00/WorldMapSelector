@@ -1,5 +1,6 @@
 #include "Diagnostics.h"
 #include "MapMenuEvents.h"
+#include "MapMenuKeyHint.h"
 #include "MapSelection.h"
 #include "MapSwitchFlow.h"
 #include "WorldspaceOverride.h"
@@ -28,6 +29,7 @@ namespace WMS::MapMenuEvents
                         // Freeze that decision for this menu instance.
                         WorldspaceOverride::BeginSession();
                         Diagnostics::LogWorldspaceState();
+                        MapMenuKeyHint::Show();
                     } else {
                         WorldspaceOverride::ResetSession();
 

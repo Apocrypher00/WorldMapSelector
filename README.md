@@ -17,6 +17,8 @@ by some other means.
 - Supports cross-worldspace fast travel through ordinary map markers.
 - Provides an in-game map chooser using Skyrim's built-in UI, without requiring
   SkyUI or another UI framework.
+- Adds a native-style `Select Map` key hint when SkyUI's compatible MapMenu
+  button panel is available.
 - Marks the player's current world in the chooser.
 - Supports paginated map lists and duplicate-name disambiguation.
 - Can open the chooser while MapMenu is already visible.
@@ -38,6 +40,11 @@ runtime family, but other executable versions remain unsupported until their
 Address Library IDs, function interfaces, and in-game behavior are verified.
 Pre-1.6 Special Edition runtimes, Skyrim VR, GOG, and other Anniversary
 Edition runtimes should not be assumed compatible.
+
+SkyUI is optional. When its compatible MapMenu interface is loaded,
+WorldMapSelector adds a `Select Map` keyboard hint to the bottom button panel.
+Without that interface, the hint is skipped and every other WorldMapSelector
+feature remains available. Other MapMenu interface replacements may vary.
 
 ## Requirements
 
@@ -97,6 +104,7 @@ values. Its defaults are:
 | `PersistSelection` | `true` | Keeps the selected map after MapMenu closes. |
 | `AllowChooserOutsideMap` | `true` | Allows the chooser hotkey during normal gameplay. Set it to `false` to make the hotkey map-only. |
 | `AllowChooserWhileMapOpen` | `true` | Allows the chooser hotkey while MapMenu is visible. |
+| `ShowMapMenuKeyHint` | `true` | Shows the configured keyboard hotkey in compatible MapMenu interfaces, including while using a controller. |
 | `IncludedWorldspaces` | *(empty)* | Comma-separated EditorIDs allowed in the chooser. An empty value includes every valid map. |
 | `ExcludedWorldspaces` | `Falskaar` | Comma-separated EditorIDs that are omitted from the map chooser. |
 

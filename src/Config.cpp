@@ -19,6 +19,7 @@ namespace WMS::Config
         bool persistSelection         = true;
         bool allowChooserOutsideMap   = true;
         bool allowChooserWhileMapOpen = true;
+        bool showMapMenuKeyHint       = true;
         std::vector<std::string> includedWorldspaces;
         std::vector<std::string> excludedWorldspaces { "Falskaar" };
 
@@ -157,13 +158,14 @@ namespace WMS::Config
         ReadBool(ini, "OpenMapAfterSelection", openMapAfterSelection);
         ReadBool(ini, "AllowChooserOutsideMap", allowChooserOutsideMap);
         ReadBool(ini, "AllowChooserWhileMapOpen", allowChooserWhileMapOpen);
+        ReadBool(ini, "ShowMapMenuKeyHint", showMapMenuKeyHint);
         ReadBool(ini, "PersistSelection", persistSelection);
         ReadWorldspaceList(ini, "IncludedWorldspaces", includedWorldspaces);
         ReadWorldspaceList(ini, "ExcludedWorldspaces", excludedWorldspaces);
 
         SKSE::log::info(
-            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, OpenMapAfterSelection={}, AllowChooserOutsideMap={}, AllowChooserWhileMapOpen={}, PersistSelection={}, IncludedWorldspaces={}, ExcludedWorldspaces={}.",
-            spdlog::level::to_string_view(logLevel), openSelectorKey, openMapAfterSelection, allowChooserOutsideMap, allowChooserWhileMapOpen, persistSelection,
+            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, OpenMapAfterSelection={}, AllowChooserOutsideMap={}, AllowChooserWhileMapOpen={}, ShowMapMenuKeyHint={}, PersistSelection={}, IncludedWorldspaces={}, ExcludedWorldspaces={}.",
+            spdlog::level::to_string_view(logLevel), openSelectorKey, openMapAfterSelection, allowChooserOutsideMap, allowChooserWhileMapOpen, showMapMenuKeyHint, persistSelection,
             includedWorldspaces.empty() ? "<all>" : fmt::format("{} entr{}", includedWorldspaces.size(), includedWorldspaces.size() == 1 ? "y" : "ies"),
             excludedWorldspaces.empty() ? "<none>" : fmt::format("{} entr{}", excludedWorldspaces.size(), excludedWorldspaces.size() == 1 ? "y" : "ies")
         );
@@ -175,6 +177,7 @@ namespace WMS::Config
     bool GetPersistSelection()         { return persistSelection; }
     bool GetAllowChooserOutsideMap()   { return allowChooserOutsideMap; }
     bool GetAllowChooserWhileMapOpen() { return allowChooserWhileMapOpen; }
+    bool GetShowMapMenuKeyHint()       { return showMapMenuKeyHint; }
     bool IsWorldspaceIncluded(std::string_view editorID)
     {
         return includedWorldspaces.empty() || std::ranges::any_of(includedWorldspaces, [&](const auto& included) { return Utilities::EqualsIgnoreCase(editorID, included); });

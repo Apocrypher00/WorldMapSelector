@@ -92,6 +92,7 @@ values. Its defaults are:
 | `OpenSelectorKey` | `0x44` | Sets the DirectInput keyboard code for the chooser hotkey. `0x44` is F10; `0x00` disables it. |
 | `OpenMapAfterSelection` | `true` | Opens the selected map immediately when choosing outside MapMenu. |
 | `PersistSelection` | `true` | Keeps the selected map after MapMenu closes. |
+| `AllowChooserOutsideMap` | `true` | Allows the chooser hotkey during normal gameplay. Set it to `false` to make the hotkey map-only. |
 | `AllowChooserWhileMapOpen` | `true` | Allows the chooser hotkey while MapMenu is visible. |
 | `ExcludedWorldspaces` | `Falskaar` | Comma-separated EditorIDs that are omitted from the map chooser. |
 

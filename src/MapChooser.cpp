@@ -266,6 +266,11 @@ namespace WMS::MapChooser
                 return;
             }
 
+            if (!Config::GetAllowChooserOutsideMap()) {
+                SKSE::log::debug("Ignored map chooser request outside MapMenu; AllowChooserOutsideMap is false.");
+                return;
+            }
+
             if (ui->GameIsPaused() || ui->IsModalMenuOpen()) {
                 SKSE::log::trace("Ignored map chooser request while another paused or modal menu is active.");
                 return;

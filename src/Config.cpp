@@ -17,6 +17,7 @@ namespace WMS::Config
         std::uint32_t openSelectorKey = 0x44;
         bool openMapAfterSelection    = true;
         bool persistSelection         = true;
+        bool allowChooserOutsideMap   = true;
         bool allowChooserWhileMapOpen = true;
         std::vector<std::string> excludedWorldspaces { "Falskaar" };
 
@@ -153,13 +154,14 @@ namespace WMS::Config
         ReadLogLevel(ini);
 		ReadSelectorKey(ini);
         ReadBool(ini, "OpenMapAfterSelection", openMapAfterSelection);
+        ReadBool(ini, "AllowChooserOutsideMap", allowChooserOutsideMap);
         ReadBool(ini, "AllowChooserWhileMapOpen", allowChooserWhileMapOpen);
         ReadBool(ini, "PersistSelection", persistSelection);
         ReadExcludedWorldspaces(ini);
 
         SKSE::log::info(
-            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, OpenMapAfterSelection={}, AllowChooserWhileMapOpen={}, PersistSelection={}, ExcludedWorldspaces={}.",
-            spdlog::level::to_string_view(logLevel), openSelectorKey, openMapAfterSelection, allowChooserWhileMapOpen, persistSelection,
+            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, OpenMapAfterSelection={}, AllowChooserOutsideMap={}, AllowChooserWhileMapOpen={}, PersistSelection={}, ExcludedWorldspaces={}.",
+            spdlog::level::to_string_view(logLevel), openSelectorKey, openMapAfterSelection, allowChooserOutsideMap, allowChooserWhileMapOpen, persistSelection,
             excludedWorldspaces.empty() ? "<none>" : fmt::format("{} entr{}", excludedWorldspaces.size(), excludedWorldspaces.size() == 1 ? "y" : "ies")
         );
     }
@@ -168,6 +170,7 @@ namespace WMS::Config
     std::uint32_t GetOpenSelectorKey() { return openSelectorKey; }
     bool GetOpenMapAfterSelection()    { return openMapAfterSelection; }
     bool GetPersistSelection()         { return persistSelection; }
+    bool GetAllowChooserOutsideMap()   { return allowChooserOutsideMap; }
     bool GetAllowChooserWhileMapOpen() { return allowChooserWhileMapOpen; }
     bool IsWorldspaceExcluded(std::string_view editorID)
     {

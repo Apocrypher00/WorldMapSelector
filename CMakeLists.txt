@@ -75,3 +75,52 @@ add_custom_command(
         "${CMAKE_CURRENT_SOURCE_DIR}/WorldMapSelector.ini"
         "$<TARGET_FILE_DIR:${PROJECT_NAME}>/WorldMapSelector.ini"
 )
+
+set(packagePluginDirectory "SKSE/Plugins")
+set(packageLicenseDirectory "${packagePluginDirectory}/WorldMapSelector/Licenses")
+
+install(
+    TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION "${packagePluginDirectory}" COMPONENT ReleasePackage
+    LIBRARY DESTINATION "${packagePluginDirectory}" COMPONENT ReleasePackage
+)
+
+install(
+    FILES "${CMAKE_CURRENT_SOURCE_DIR}/WorldMapSelector.ini"
+    DESTINATION "${packagePluginDirectory}"
+    COMPONENT ReleasePackage
+)
+
+function(install_license sourcePath outputName)
+    if(NOT EXISTS "${sourcePath}")
+        message(FATAL_ERROR "Required license file was not found: ${sourcePath}")
+    endif()
+
+    install(
+        FILES "${sourcePath}"
+        DESTINATION "${packageLicenseDirectory}"
+        RENAME "${outputName}.txt"
+        COMPONENT ReleasePackage
+    )
+endfunction()
+
+install_license("${CMAKE_CURRENT_SOURCE_DIR}/UNLICENSE" "WorldMapSelector")
+install_license("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/LICENSE" "CommonLibSSE-NG")
+
+set(vcpkgShareDirectory "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share")
+install_license("${vcpkgShareDirectory}/directxmath/copyright" "directxmath")
+install_license("${vcpkgShareDirectory}/directxtk/copyright" "directxtk")
+install_license("${vcpkgShareDirectory}/fmt/copyright" "fmt")
+install_license("${vcpkgShareDirectory}/minhook/copyright" "minhook")
+install_license("${vcpkgShareDirectory}/nlohmann-json/copyright" "nlohmann-json")
+install_license("${vcpkgShareDirectory}/rapidcsv/copyright" "rapidcsv")
+install_license("${vcpkgShareDirectory}/simpleini/copyright" "simpleini")
+install_license("${vcpkgShareDirectory}/spdlog/copyright" "spdlog")
+install_license("${vcpkgShareDirectory}/toml11/copyright" "toml11")
+install_license("${vcpkgShareDirectory}/xbyak/copyright" "xbyak")
+
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_PACKAGE_FILE_NAME "WorldMapSelector-${PROJECT_VERSION}")
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+set(CPACK_INSTALL_CMAKE_PROJECTS "${CMAKE_BINARY_DIR};${PROJECT_NAME};ReleasePackage;/")
+include(CPack)

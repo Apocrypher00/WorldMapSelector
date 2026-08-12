@@ -59,7 +59,10 @@ The archive is laid out relative to `Data`:
 SKSE/
 └── Plugins/
     ├── WorldMapSelector.dll
-    └── WorldMapSelector.ini
+    ├── WorldMapSelector.ini
+    └── WorldMapSelector/
+        └── Licenses/
+            └── ...
 ```
 
 Launch Skyrim through SKSE.
@@ -157,6 +160,18 @@ out/build/x64-Release/
 The `x64-Release` preset produces an optimized `Release` build. Dependencies
 are resolved through the checked-in `vcpkg.json` manifest using the
 `x64-windows-static-md` triplet.
+
+To build the optimized plugin and generate the complete release archive:
+
+```powershell
+cmake --preset x64-Release
+cmake --build --preset x64-Release-Package
+```
+
+The Nexus-ready archive is written to the release build directory as
+`WorldMapSelector-<version>.zip`. The package contains the DLL, default INI,
+and required project and third-party license files in their Data-relative
+locations.
 
 If the repository was cloned without submodules:
 

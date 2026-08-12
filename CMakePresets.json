@@ -48,6 +48,13 @@
       "name": "x64-Release",
       "configurePreset": "x64-Release",
       "targets": [ "WorldMapSelector" ]
+    },
+    {
+      "name": "x64-Release-Package",
+      "displayName": "x64 Release Package",
+      "description": "Build the optimized plugin and Nexus-ready ZIP archive.",
+      "configurePreset": "x64-Release",
+      "targets": [ "package" ]
     }
   ]
 }

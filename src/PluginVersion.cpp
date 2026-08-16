@@ -8,6 +8,7 @@ SKSEPluginInfo(
     .SupportEmail = ""sv,
     .StructCompatibility = SKSE::StructCompatibility::Independent,
     .RuntimeCompatibility = {
+        REL::Version{ 1, 5, 97, 0 },
         REL::Version{ 1, 6, 318, 0 },
         REL::Version{ 1, 6, 323, 0 },
         REL::Version{ 1, 6, 342, 0 },

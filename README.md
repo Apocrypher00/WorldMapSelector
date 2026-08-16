@@ -27,19 +27,25 @@ by some other means.
 
 ## Compatibility
 
-The currently validated environment is:
+Supported Steam Skyrim runtimes:
 
-- Skyrim Special Edition on Steam
-- Runtime `1.6.1170`
-- SKSE `2.2.6`
-- Address Library database for runtime `1.6.1170`
+- `1.6.318`
+- `1.6.323`
+- `1.6.342`
+- `1.6.353`
+- `1.6.629`
+- `1.6.640`
+- `1.6.1130`
+- `1.6.1170`
 
-The distributed plugin is intentionally restricted to runtime `1.6.1170` in
-its SKSE plugin metadata. The project builds against the Anniversary Edition
-runtime family, but other executable versions remain unsupported until their
-Address Library IDs, function interfaces, and in-game behavior are verified.
-Pre-1.6 Special Edition runtimes, Skyrim VR, GOG, and other Anniversary
-Edition runtimes should not be assumed compatible.
+The minimum supported Skyrim runtime is `1.6.318`, and the minimum supported
+SKSE version is `2.1.2`. Install the SKSE build and Address Library database
+matching the exact Skyrim runtime.
+
+Skyrim `1.6.317` is not supported because its matching official SKSE `2.1.0`
+release does not load native DLL plugins. Pre-1.6 Special Edition runtimes,
+Skyrim VR, GOG, and future Skyrim updates are unsupported unless explicitly
+listed above.
 
 SkyUI is optional. When its compatible MapMenu interface is loaded,
 WorldMapSelector adds a `Select Map` keyboard hint to the bottom button panel.
@@ -48,8 +54,9 @@ feature remains available. Other MapMenu interface replacements may vary.
 
 ## Requirements
 
-- [SKSE64](https://skse.silverlock.org/) matching the installed Skyrim runtime
-- [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
+- [SKSE64](https://skse.silverlock.org/) `2.1.2` or newer, matching the installed
+  supported Skyrim runtime
+- [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444), with the database matching the installed Skyrim runtime
 - [Latest Microsoft Visual C++ Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
 
 CommonLibSSE NG and MinHook are linked into the plugin; users do not install
@@ -119,7 +126,6 @@ changing any INI setting.
 
 ## Known Issues
 
-- Only Steam runtime `1.6.1170` has received substantial testing so far.
 - **Falskaar is incompatible with remote map selection.** Opening its remote map
   can leave Skyrim unable to complete later world transitions. Falskaar is
   excluded by default; removing it from `ExcludedWorldspaces` is not recommended.

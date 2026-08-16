@@ -29,6 +29,7 @@ by some other means.
 
 Supported Steam Skyrim runtimes:
 
+- `1.5.97`
 - `1.6.318`
 - `1.6.323`
 - `1.6.342`
@@ -38,14 +39,13 @@ Supported Steam Skyrim runtimes:
 - `1.6.1130`
 - `1.6.1170`
 
-The minimum supported Skyrim runtime is `1.6.318`, and the minimum supported
-SKSE version is `2.1.2`. Install the SKSE build and Address Library database
-matching the exact Skyrim runtime.
+Skyrim `1.5.97` requires SKSE `2.0.20`. Supported `1.6.x` runtimes require the
+matching SKSE build, beginning with SKSE `2.1.2` for Skyrim `1.6.318`. Install
+the SKSE build and Address Library database matching the exact Skyrim runtime.
 
 Skyrim `1.6.317` is not supported because its matching official SKSE `2.1.0`
-release does not load native DLL plugins. Pre-1.6 Special Edition runtimes,
-Skyrim VR, GOG, and future Skyrim updates are unsupported unless explicitly
-listed above.
+release does not load native DLL plugins. Other `1.5.x` runtimes, Skyrim VR,
+GOG, and future Skyrim updates are unsupported unless explicitly listed above.
 
 SkyUI is optional. When its compatible MapMenu interface is loaded,
 WorldMapSelector adds a `Select Map` keyboard hint to the bottom button panel.
@@ -54,8 +54,9 @@ feature remains available. Other MapMenu interface replacements may vary.
 
 ## Requirements
 
-- [SKSE64](https://skse.silverlock.org/) `2.1.2` or newer, matching the installed
-  supported Skyrim runtime
+- [SKSE64](https://skse.silverlock.org/), matching the installed supported
+  Skyrim runtime (`2.0.20` for Skyrim `1.5.97`; `2.1.2` or newer for the
+  supported `1.6.x` runtimes)
 - [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444), with the database matching the installed Skyrim runtime
 - [Latest Microsoft Visual C++ Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
 

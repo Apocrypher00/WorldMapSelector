@@ -2,7 +2,7 @@
 #include "SKSE/SKSE.h"
 
 SKSEPluginInfo(
-    .Version = REL::Version{ 1, 2, 0, 0 },
+    .Version = REL::Version{ 1, 3, 0, 0 },
     .Name = "WorldMapSelector"sv,
     .Author = "Apocrypher00"sv,
     .SupportEmail = ""sv,

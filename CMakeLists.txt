@@ -22,11 +22,9 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/cmake/CommonLibSSE.cmake
 find_package(minhook CONFIG REQUIRED)
 find_path(SIMPLEINI_INCLUDE_DIR SimpleIni.h REQUIRED)
 
-add_commonlibsse_plugin(
+add_library(
     ${PROJECT_NAME}
-    COMPATIBLE_RUNTIMES
-        1.6.1170
-    SOURCES
+    SHARED
         src/ClassicMessageBox.cpp
         src/ClassicMessageBox.h
         src/Config.cpp
@@ -43,6 +41,7 @@ add_commonlibsse_plugin(
         src/MapSelection.cpp
         src/MapSwitchFlow.cpp
         src/MapSwitchFlow.h
+        src/PluginVersion.cpp
         src/RoutedMarkerOverride.cpp
         src/RoutedMarkerOverride.h
         src/Utilities.cpp
@@ -50,6 +49,17 @@ add_commonlibsse_plugin(
         src/WorldspaceCatalog.cpp
         src/WorldspaceOverride.cpp
         src/plugin.cpp
+)
+
+# These are the target settings normally supplied by add_commonlibsse_plugin.
+# PluginVersion.cpp provides the runtime metadata directly because CommonLib 4.39.0's
+# convenience function cannot process more than one COMPATIBLE_RUNTIMES entry.
+target_compile_definitions(${PROJECT_NAME} PRIVATE __CMAKE_COMMONLIBSSE_PLUGIN=1)
+target_link_libraries(${PROJECT_NAME} PUBLIC CommonLibSSE::CommonLibSSE)
+target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+        "${CommonLibSSE_INCLUDE_DIRS}"
 )
 
 target_include_directories(

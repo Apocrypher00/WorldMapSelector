@@ -36,7 +36,18 @@ namespace WMS::MapChooserInput
 
                         // AsButtonEvent returns null when this input event is not a button.
                         const auto* button = event->AsButtonEvent();
-                        if (!button || button->device != RE::INPUT_DEVICE::kKeyboard || !button->IsDown()) {
+                        if (!button || !button->IsDown()) {
+                            continue;
+                        }
+
+                        // LocalMapMenu changes mode later in the same input dispatch. Refresh the
+                        // SkyUI hint afterward so it follows the resulting world/local map state.
+                        const auto* userEvents = RE::UserEvents::GetSingleton();
+                        if (userEvents && button->GetUserEvent() == userEvents->localMap) {
+                            MapMenuKeyHint::RefreshAfterMapModeChange();
+                        }
+
+                        if (button->device != RE::INPUT_DEVICE::kKeyboard) {
                             continue;
                         }
 

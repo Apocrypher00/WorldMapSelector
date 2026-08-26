@@ -10,10 +10,6 @@ namespace WMS::MapChooser
 {
     namespace
     {
-        // constexpr makes this a compile-time constant
-        // size_t is the unsigned type used for container sizes and indexes.
-        constexpr std::size_t mapsPerPage = 6;
-
         // enum class creates named values without leaking kSelectMap, etc.
         // into the surrounding namespace or allowing accidental integer conversion.
         enum class ActionType
@@ -154,6 +150,8 @@ namespace WMS::MapChooser
                 RE::SendHUDMessage::ShowHUDMessage("WorldMapSelector found no selectable maps.");
                 return;
             }
+
+            const auto mapsPerPage = Config::GetMapsPerPage();
 
             // Integer ceiling division calculates enough pages for every map.
             // Parentheses around min/max prevent Windows macros from expanding.

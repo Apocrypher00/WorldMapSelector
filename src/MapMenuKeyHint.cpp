@@ -70,6 +70,43 @@ namespace WMS::MapMenuKeyHint
             buttonData.SetMember("text", "Select Map");
             buttonData.SetMember("controls", controls);
         }
+
+        bool IsLocalMapShowing(const RE::MapMenu& mapMenu)
+        {
+            const auto* mapData = mapMenu.GetRuntimeData();
+            return mapData && mapData->localMapMenu.GetRuntimeData().showingMap;
+        }
+
+        bool RemoveSkyUIButton(RE::GFxValue& buttonPanel, RE::GFxValue& buttons)
+        {
+            RE::GFxValue button;
+            if (!buttonPanel.GetMember("worldMapSelectorButton", &button) || !button.IsDisplayObject()) {
+                return true;
+            }
+
+            // Remove our clip from SkyUI's public array before destroying it. Merely hiding the
+            // clip leaves its old layout slot occupied and can overlap local-map additions.
+            for (std::uint32_t index = 0; index < buttons.GetArraySize(); ++index) {
+                RE::GFxValue candidate;
+                RE::GFxValue name;
+                if (buttons.GetElement(index, &candidate) && candidate.IsDisplayObject() &&
+                    candidate.GetMember("_name", &name) && name.IsString() &&
+                    std::string_view(name.GetString()) == "worldMapSelectorButton") {
+                    if (!buttons.RemoveElement(index)) {
+                        return false;
+                    }
+                    break;
+                }
+            }
+
+            if (!buttonPanel.SetMember("maxButtons", buttons.GetArraySize()) ||
+                !button.Invoke("removeMovieClip", nullptr) ||
+                !buttonPanel.Invoke("updateButtons", nullptr, std::array { RE::GFxValue(true) })) {
+                return false;
+            }
+
+            return true;
+        }
     }
 
     void Show()
@@ -95,6 +132,13 @@ namespace WMS::MapMenuKeyHint
         RE::GFxValue buttons;
         if (!GetSkyUIButtonPanel(movie, buttonPanel, buttons)) {
             SKSE::log::debug("MapMenu does not expose SkyUI's expected button panel; key hint was skipped.");
+            return;
+        }
+
+        if (IsLocalMapShowing(*mapMenu) && !Config::GetShowMapMenuKeyHintOnLocalMap()) {
+            if (!RemoveSkyUIButton(buttonPanel, buttons)) {
+                SKSE::log::warn("Could not remove the SkyUI MapMenu key hint for the local map.");
+            }
             return;
         }
 
@@ -136,6 +180,19 @@ namespace WMS::MapMenuKeyHint
         const auto* tasks = SKSE::GetTaskInterface();
         if (!tasks) {
             SKSE::log::warn("Could not schedule the MapMenu key hint after an input-mode change.");
+            return;
+        }
+
+        tasks->AddUITask(Show);
+    }
+
+    void RefreshAfterMapModeChange()
+    {
+        // Skyrim updates LocalMapMenu::showingMap while processing the Local Map input.
+        // Queue the refresh so Show observes the new mode rather than the old one.
+        const auto* tasks = SKSE::GetTaskInterface();
+        if (!tasks) {
+            SKSE::log::warn("Could not schedule the MapMenu key hint after a map-mode change.");
             return;
         }
 

@@ -9,6 +9,8 @@ namespace WMS::Config
     bool GetAllowChooserOutsideMap();
     bool GetAllowChooserWhileMapOpen();
     bool GetShowMapMenuKeyHint();
+    bool GetShowMapMenuKeyHintOnLocalMap();
+    std::size_t GetMapsPerPage();
     bool IsWorldspaceIncluded(std::string_view editorID);
     bool IsWorldspaceExcluded(std::string_view editorID);
 }

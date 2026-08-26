@@ -19,7 +19,9 @@ namespace WMS::Config
         bool persistSelection         = true;
         bool allowChooserOutsideMap   = true;
         bool allowChooserWhileMapOpen = true;
-        bool showMapMenuKeyHint       = true;
+        bool showMapMenuKeyHint           = true;
+        bool showMapMenuKeyHintOnLocalMap = false;
+        std::size_t mapsPerPage           = 6;
         std::vector<std::string> includedWorldspaces;
         std::vector<std::string> excludedWorldspaces { "Falskaar" };
 
@@ -62,6 +64,20 @@ namespace WMS::Config
             if (Utilities::EqualsIgnoreCase(text, "true"))  return true;
             if (Utilities::EqualsIgnoreCase(text, "false")) return false;
             return std::nullopt;
+        }
+
+        std::optional<std::size_t> ParseMapsPerPage(std::string_view text)
+        {
+            std::size_t parsed = 0;
+            const char* start  = text.data();
+            const char* end    = start + text.size();
+            const auto result  = std::from_chars(start, end, parsed, 10);
+
+            if (result.ec != std::errc{} || result.ptr != end || parsed < 1 || parsed > 7) {
+                return std::nullopt;
+            }
+
+            return parsed;
         }
 
         std::string_view Trim(std::string_view text)
@@ -117,6 +133,17 @@ namespace WMS::Config
             else { SKSE::log::debug("{} not specified. Keeping default.", key); }
         }
 
+        void ReadMapsPerPage(const CSimpleIniA& ini)
+        {
+            if (const char* configured = ini.GetValue("Behavior", "MapsPerPage")) {
+                if (const auto parsed = ParseMapsPerPage(configured)) {
+                    mapsPerPage = *parsed;
+                }
+                else { SKSE::log::warn("Invalid MapsPerPage \"{}\"; expected a number from 1 through 7. Keeping default 6.", configured); }
+            }
+            else { SKSE::log::debug("MapsPerPage not specified. Keeping default 6."); }
+        }
+
         void ReadWorldspaceList(const CSimpleIniA& ini, const char* key, std::vector<std::string>& worldspaces)
         {
             const char* configured = ini.GetValue("Compatibility", key);
@@ -159,13 +186,15 @@ namespace WMS::Config
         ReadBool(ini, "AllowChooserOutsideMap", allowChooserOutsideMap);
         ReadBool(ini, "AllowChooserWhileMapOpen", allowChooserWhileMapOpen);
         ReadBool(ini, "ShowMapMenuKeyHint", showMapMenuKeyHint);
+        ReadBool(ini, "ShowMapMenuKeyHintOnLocalMap", showMapMenuKeyHintOnLocalMap);
+        ReadMapsPerPage(ini);
         ReadBool(ini, "PersistSelection", persistSelection);
         ReadWorldspaceList(ini, "IncludedWorldspaces", includedWorldspaces);
         ReadWorldspaceList(ini, "ExcludedWorldspaces", excludedWorldspaces);
 
         SKSE::log::info(
-            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, OpenMapAfterSelection={}, AllowChooserOutsideMap={}, AllowChooserWhileMapOpen={}, ShowMapMenuKeyHint={}, PersistSelection={}, IncludedWorldspaces={}, ExcludedWorldspaces={}.",
-            spdlog::level::to_string_view(logLevel), openSelectorKey, openMapAfterSelection, allowChooserOutsideMap, allowChooserWhileMapOpen, showMapMenuKeyHint, persistSelection,
+            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, OpenMapAfterSelection={}, AllowChooserOutsideMap={}, AllowChooserWhileMapOpen={}, ShowMapMenuKeyHint={}, ShowMapMenuKeyHintOnLocalMap={}, MapsPerPage={}, PersistSelection={}, IncludedWorldspaces={}, ExcludedWorldspaces={}.",
+            spdlog::level::to_string_view(logLevel), openSelectorKey, openMapAfterSelection, allowChooserOutsideMap, allowChooserWhileMapOpen, showMapMenuKeyHint, showMapMenuKeyHintOnLocalMap, mapsPerPage, persistSelection,
             includedWorldspaces.empty() ? "<all>" : fmt::format("{} entr{}", includedWorldspaces.size(), includedWorldspaces.size() == 1 ? "y" : "ies"),
             excludedWorldspaces.empty() ? "<none>" : fmt::format("{} entr{}", excludedWorldspaces.size(), excludedWorldspaces.size() == 1 ? "y" : "ies")
         );
@@ -177,7 +206,9 @@ namespace WMS::Config
     bool GetPersistSelection()         { return persistSelection; }
     bool GetAllowChooserOutsideMap()   { return allowChooserOutsideMap; }
     bool GetAllowChooserWhileMapOpen() { return allowChooserWhileMapOpen; }
-    bool GetShowMapMenuKeyHint()       { return showMapMenuKeyHint; }
+    bool GetShowMapMenuKeyHint()           { return showMapMenuKeyHint; }
+    bool GetShowMapMenuKeyHintOnLocalMap() { return showMapMenuKeyHintOnLocalMap; }
+    std::size_t GetMapsPerPage()           { return mapsPerPage; }
     bool IsWorldspaceIncluded(std::string_view editorID)
     {
         return includedWorldspaces.empty() || std::ranges::any_of(includedWorldspaces, [&](const auto& included) { return Utilities::EqualsIgnoreCase(editorID, included); });

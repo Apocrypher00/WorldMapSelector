@@ -169,7 +169,7 @@ namespace WMS::MapChooser
             std::vector<std::string> buttons;
             std::vector<Action> actions;
 
-            if (page == 0) {
+            if (page == 0 && Config::GetShowClearSelectionButton()) {
                 buttons.emplace_back("[Clear Selection]");
                 // Designated initializers make clear which Action fields this particular button requires;
                 // omitted fields keep defaults.

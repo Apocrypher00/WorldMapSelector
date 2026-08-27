@@ -12,6 +12,7 @@ namespace WMS::Config
     bool GetShowMapMenuKeyHintOnLocalMap();
     std::size_t GetMapsPerPage();
     bool GetShowCancelButton();
+    bool GetShowClearSelectionButton();
     bool IsWorldspaceIncluded(std::string_view editorID);
     bool IsWorldspaceExcluded(std::string_view editorID);
 }

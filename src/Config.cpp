@@ -22,6 +22,7 @@ namespace WMS::Config
         bool showMapMenuKeyHint           = true;
         bool showMapMenuKeyHintOnLocalMap = false;
         std::size_t mapsPerPage           = 6;
+        bool showCancelButton             = true;
         std::vector<std::string> includedWorldspaces;
         std::vector<std::string> excludedWorldspaces { "Falskaar" };
 
@@ -188,13 +189,14 @@ namespace WMS::Config
         ReadBool(ini, "ShowMapMenuKeyHint", showMapMenuKeyHint);
         ReadBool(ini, "ShowMapMenuKeyHintOnLocalMap", showMapMenuKeyHintOnLocalMap);
         ReadMapsPerPage(ini);
+        ReadBool(ini, "ShowCancelButton", showCancelButton);
         ReadBool(ini, "PersistSelection", persistSelection);
         ReadWorldspaceList(ini, "IncludedWorldspaces", includedWorldspaces);
         ReadWorldspaceList(ini, "ExcludedWorldspaces", excludedWorldspaces);
 
         SKSE::log::info(
-            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, OpenMapAfterSelection={}, AllowChooserOutsideMap={}, AllowChooserWhileMapOpen={}, ShowMapMenuKeyHint={}, ShowMapMenuKeyHintOnLocalMap={}, MapsPerPage={}, PersistSelection={}, IncludedWorldspaces={}, ExcludedWorldspaces={}.",
-            spdlog::level::to_string_view(logLevel), openSelectorKey, openMapAfterSelection, allowChooserOutsideMap, allowChooserWhileMapOpen, showMapMenuKeyHint, showMapMenuKeyHintOnLocalMap, mapsPerPage, persistSelection,
+            "Loaded configuration: LogLevel={}, OpenSelectorKey=0x{:02X}, OpenMapAfterSelection={}, AllowChooserOutsideMap={}, AllowChooserWhileMapOpen={}, ShowMapMenuKeyHint={}, ShowMapMenuKeyHintOnLocalMap={}, MapsPerPage={}, ShowCancelButton={}, PersistSelection={}, IncludedWorldspaces={}, ExcludedWorldspaces={}.",
+            spdlog::level::to_string_view(logLevel), openSelectorKey, openMapAfterSelection, allowChooserOutsideMap, allowChooserWhileMapOpen, showMapMenuKeyHint, showMapMenuKeyHintOnLocalMap, mapsPerPage, showCancelButton, persistSelection,
             includedWorldspaces.empty() ? "<all>" : fmt::format("{} entr{}", includedWorldspaces.size(), includedWorldspaces.size() == 1 ? "y" : "ies"),
             excludedWorldspaces.empty() ? "<none>" : fmt::format("{} entr{}", excludedWorldspaces.size(), excludedWorldspaces.size() == 1 ? "y" : "ies")
         );
@@ -209,6 +211,7 @@ namespace WMS::Config
     bool GetShowMapMenuKeyHint()           { return showMapMenuKeyHint; }
     bool GetShowMapMenuKeyHintOnLocalMap() { return showMapMenuKeyHintOnLocalMap; }
     std::size_t GetMapsPerPage()           { return mapsPerPage; }
+    bool GetShowCancelButton()             { return showCancelButton; }
     bool IsWorldspaceIncluded(std::string_view editorID)
     {
         return includedWorldspaces.empty() || std::ranges::any_of(includedWorldspaces, [&](const auto& included) { return Utilities::EqualsIgnoreCase(editorID, included); });

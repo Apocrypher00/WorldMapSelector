@@ -208,10 +208,12 @@ namespace WMS::MapChooser
                 });
             }
 
-            buttons.emplace_back("Cancel");
-            actions.push_back({
-                .type = ActionType::kCancel
-            });
+            if (Config::GetShowCancelButton()) {
+                buttons.emplace_back("Cancel");
+                actions.push_back({
+                    .type = ActionType::kCancel
+                });
+            }
 
             const auto message = fmt::format("Select World Map ({}/{})", page + 1, pageCount);
 

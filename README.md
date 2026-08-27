@@ -115,6 +115,7 @@ values. Its defaults are:
 | `ShowMapMenuKeyHint` | `true` | Shows the configured keyboard hotkey in compatible MapMenu interfaces, including while using a controller. |
 | `ShowMapMenuKeyHintOnLocalMap` | `false` | Also shows the SkyUI key hint while viewing the local map. Leave disabled to avoid conflicts with local-map interface mods. |
 | `MapsPerPage` | `6` | Number of worldspaces shown per chooser page. Valid values are 1 through 7. |
+| `ShowCancelButton` | `true` | Shows a visible Cancel button in the chooser. Escape, Tab, and controller Cancel inputs remain available when hidden. |
 | `IncludedWorldspaces` | *(empty)* | Comma-separated EditorIDs allowed in the chooser. An empty value includes every valid map. |
 | `ExcludedWorldspaces` | `Falskaar` | Comma-separated EditorIDs that are omitted from the map chooser. |
 

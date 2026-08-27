@@ -2,9 +2,18 @@ cmake_minimum_required(VERSION 3.21)
 
 project(
     WorldMapSelector
-    VERSION 1.3.1
+    VERSION 1.4.0
     LANGUAGES CXX
 )
+
+# Keep the package manifest aligned with the version used for plugin metadata
+# and release archive names.
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg.json" vcpkgManifest)
+string(JSON vcpkgVersion GET "${vcpkgManifest}" "version-string")
+if(NOT "${vcpkgVersion}" STREQUAL "${PROJECT_VERSION}")
+    message(FATAL_ERROR
+        "Project version ${PROJECT_VERSION} does not match vcpkg manifest version ${vcpkgVersion}.")
+endif()
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -54,7 +63,15 @@ add_library(
 # These are the target settings normally supplied by add_commonlibsse_plugin.
 # PluginVersion.cpp keeps the explicit supported-runtime list and its generated
 # SKSE metadata under project source control.
-target_compile_definitions(${PROJECT_NAME} PRIVATE __CMAKE_COMMONLIBSSE_PLUGIN=1)
+target_compile_definitions(
+    ${PROJECT_NAME}
+    PRIVATE
+        __CMAKE_COMMONLIBSSE_PLUGIN=1
+        WMS_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+        WMS_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+        WMS_VERSION_PATCH=${PROJECT_VERSION_PATCH}
+        WMS_VERSION_TWEAK=${PROJECT_VERSION_TWEAK}
+)
 target_link_libraries(${PROJECT_NAME} PUBLIC CommonLibSSE::CommonLibSSE)
 target_include_directories(
     ${PROJECT_NAME}

@@ -13,10 +13,14 @@ without changing the license that applied to any release.
 | 1.2.0 | `v1.2.0` | `9ea71c54883e65fcafeda3040ccc2bc02a5c9cc6` | `ee12231b20c95013c6638d845d04c91559a1d1ff` |
 | 1.3.0 | `v1.3.0` | `9ea71c54883e65fcafeda3040ccc2bc02a5c9cc6` | `ee12231b20c95013c6638d845d04c91559a1d1ff` |
 | 1.3.1 | `v1.3.1` | `9ea71c54883e65fcafeda3040ccc2bc02a5c9cc6` | `ee12231b20c95013c6638d845d04c91559a1d1ff` |
+| 1.4.0 | `v1.4.0` | `3d81614617910e7f34b33d8750881811b5e36445` | `ee12231b20c95013c6638d845d04c91559a1d1ff` |
 
-These releases use CommonLibSSE NG 4.39.0 under its MIT license. WorldMapSelector's
-own source is released under the Unlicense. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
-for the other licenses and acknowledgements applicable to these builds.
+Releases through 1.3.1 use CommonLibSSE NG 4.39.0 under its MIT license.
+Release 1.4.0 uses CommonLibSSE NG 6.7.0 under GPL-3.0-or-later with its Modding
+and Linking Exceptions. WorldMapSelector's own source remains released under the
+Unlicense. See [LICENSING.md](LICENSING.md) and
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the license terms and
+acknowledgements applicable to each build.
 
 ## Retrieve an exact release
 

@@ -2,7 +2,7 @@
 #include "SKSE/SKSE.h"
 
 SKSEPluginInfo(
-    .Version = REL::Version{ 1, 3, 1, 0 },
+    .Version = REL::Version{ WMS_VERSION_MAJOR, WMS_VERSION_MINOR, WMS_VERSION_PATCH, WMS_VERSION_TWEAK },
     .Name = "WorldMapSelector"sv,
     .Author = "Apocrypher00"sv,
     .SupportEmail = ""sv,

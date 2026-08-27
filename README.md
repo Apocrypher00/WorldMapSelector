@@ -40,12 +40,8 @@ Supported Steam Skyrim runtimes:
 | `1.6.640` | `2.2.3` |
 | `1.6.1130` | `2.2.5` |
 | `1.6.1170` | `2.2.6` |
-| `1.7.99`* | `2.3.0` |
+| `1.7.99` | `2.3.0` |
 | `1.7.104` | `2.3.1` |
-
-\* Skyrim `1.7.99` is supported by exact static comparison with the tested
-`1.7.104` code, but has not been tested in game because its matching SKSE
-archive was unavailable.
 
 Install the SKSE build and Address Library database matching the exact Skyrim
 runtime.

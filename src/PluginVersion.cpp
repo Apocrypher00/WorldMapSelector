@@ -16,6 +16,8 @@ SKSEPluginInfo(
         REL::Version{ 1, 6, 629, 0 },
         REL::Version{ 1, 6, 640, 0 },
         REL::Version{ 1, 6, 1130, 0 },
-        REL::Version{ 1, 6, 1170, 0 }
+        REL::Version{ 1, 6, 1170, 0 },
+        REL::Version{ 1, 7, 99, 0 },  // Statically verified; runtime test pending.
+        REL::Version{ 1, 7, 104, 0 }
     }
 )

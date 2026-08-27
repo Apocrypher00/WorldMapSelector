@@ -29,19 +29,26 @@ by some other means.
 
 Supported Steam Skyrim runtimes:
 
-- `1.5.97`
-- `1.6.318`
-- `1.6.323`
-- `1.6.342`
-- `1.6.353`
-- `1.6.629`
-- `1.6.640`
-- `1.6.1130`
-- `1.6.1170`
+| Skyrim | SKSE |
+| --- | --- |
+| `1.5.97` | `2.0.20` |
+| `1.6.318` | `2.1.2` |
+| `1.6.323` | `2.1.3` |
+| `1.6.342` | `2.1.4` |
+| `1.6.353` | `2.1.5` |
+| `1.6.629` | `2.2.0` |
+| `1.6.640` | `2.2.3` |
+| `1.6.1130` | `2.2.5` |
+| `1.6.1170` | `2.2.6` |
+| `1.7.99`* | `2.3.0` |
+| `1.7.104` | `2.3.1` |
 
-Skyrim `1.5.97` requires SKSE `2.0.20`. Supported `1.6.x` runtimes require the
-matching SKSE build, beginning with SKSE `2.1.2` for Skyrim `1.6.318`. Install
-the SKSE build and Address Library database matching the exact Skyrim runtime.
+\* Skyrim `1.7.99` is supported by exact static comparison with the tested
+`1.7.104` code, but has not been tested in game because its matching SKSE
+archive was unavailable.
+
+Install the SKSE build and Address Library database matching the exact Skyrim
+runtime.
 
 Skyrim `1.6.317` is not supported because its matching official SKSE `2.1.0`
 release does not load native DLL plugins. Other `1.5.x` runtimes, Skyrim VR,
@@ -54,9 +61,8 @@ feature remains available. Other MapMenu interface replacements may vary.
 
 ## Requirements
 
-- [SKSE64](https://skse.silverlock.org/), matching the installed supported
-  Skyrim runtime (`2.0.20` for Skyrim `1.5.97`; `2.1.2` or newer for the
-  supported `1.6.x` runtimes)
+- [SKSE64](https://skse.silverlock.org/), using the matching version listed
+  above for the installed Skyrim runtime
 - [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444), with the database matching the installed Skyrim runtime
 - [Latest Microsoft Visual C++ Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
 

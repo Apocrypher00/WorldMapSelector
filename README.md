@@ -198,6 +198,9 @@ If the repository was cloned without submodules:
 git submodule update --init --recursive
 ```
 
+See [SOURCES.md](SOURCES.md) for the source corresponding to each published
+release and the exact dependency pins used to reproduce it.
+
 ## Dependencies and acknowledgements
 
 WorldMapSelector depends at runtime on SKSE64 and Address Library for SKSE

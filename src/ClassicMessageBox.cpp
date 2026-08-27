@@ -79,4 +79,24 @@ namespace WMS::ClassicMessageBox
                 return false;
         }
     }
+
+    // Dismiss removes the current message box without reporting any button as selected.
+    bool Dismiss()
+    {
+        auto* data = RE::MessageBoxMenu::GetCurrentMessageBoxData();
+        if (!data) return false;
+
+        // Removing the queued data destroys its callback without invoking it.
+        RE::MessageBoxMenu::RemoveMessageFromQueue(data);
+
+        // SelectOption normally performs this step after removing its message.
+        // Since no Scaleform button was pressed, close the empty menu explicitly.
+        if (!RE::MessageBoxMenu::GetCurrentMessageBoxData()) {
+            if (auto* queue = RE::UIMessageQueue::GetSingleton()) {
+                queue->AddMessage(RE::MessageBoxMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kHide, nullptr);
+            }
+        }
+
+        return true;
+    }
 }

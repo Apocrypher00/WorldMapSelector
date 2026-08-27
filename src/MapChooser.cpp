@@ -286,26 +286,24 @@ namespace WMS::MapChooser
         OpenChooser();
     }
 
-    // Classic MessageBoxMenu only focuses its final button on Escape.
-    // Select our known Cancel button explicitly so one press dismisses the chooser without changing selection.
-    bool SelectCancelButton()
+    // Dismiss closes only an active map chooser and reports no button selection.
+    bool Dismiss()
     {
-        auto* ui = RE::UI::GetSingleton();
-        if (!ui || !ui->IsMenuOpen(RE::MessageBoxMenu::MENU_NAME)) return false;
-
-        std::optional<std::int32_t> cancelIndex;
         {
             std::scoped_lock lock(actionsLock);
-            if (chooserActive && !pendingActions.empty() && pendingActions.back().type == ActionType::kCancel) {
-                // Convert the unsigned vector index to the signed integer expected by SelectOption.
-                cancelIndex = static_cast<std::int32_t>(pendingActions.size() - 1);
+            if (!chooserActive) return false;
+
+            if (!ClassicMessageBox::Dismiss()) {
+                SKSE::log::warn("Could not dismiss the active map chooser.");
+                return false;
             }
+
+            pendingActions.clear();
+            chooserActive = false;
         }
 
-        if (!cancelIndex) return false;
-
-        SKSE::log::trace("Translated Escape into map chooser Cancel button {}.", *cancelIndex);
-        RE::MessageBoxMenu::SelectOption(*cancelIndex);
+        SKSE::log::debug("Dismissed the map chooser without selecting an action.");
+        MapSwitchFlow::Cancel();
         return true;
     }
 }

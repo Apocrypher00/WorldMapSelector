@@ -47,14 +47,15 @@ namespace WMS::MapChooserInput
                             MapMenuKeyHint::RefreshAfterMapModeChange();
                         }
 
-                        if (button->device != RE::INPUT_DEVICE::kKeyboard) {
-                            continue;
+                        // Skyrim maps Escape, Tab, and controller Back buttons to its logical Cancel event.
+                        const bool isCancel = userEvents && button->GetUserEvent() == userEvents->cancel;
+
+                        if (isCancel && MapChooser::Dismiss()) {
+                            return RE::BSEventNotifyControl::kStop;
                         }
 
-                        // Process Escape when the map chooser is open.
-                        // SelectCancelButton returns false when no chooser actions are awaiting a response.
-                        if (button->GetIDCode() == 0x01 && MapChooser::SelectCancelButton()) {
-                            return RE::BSEventNotifyControl::kStop;
+                        if (button->device != RE::INPUT_DEVICE::kKeyboard) {
+                            continue;
                         }
 
                         // Process the configured hotkey only when the map chooser is not already open.
@@ -70,7 +71,7 @@ namespace WMS::MapChooserInput
         };
     }
 
-    // Register installs the hotkey and Escape listener.
+    // Register installs the hotkey and chooser-dismiss listeners.
     bool Register()
     {
         auto* input = RE::BSInputDeviceManager::GetSingleton();

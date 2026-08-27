@@ -3,5 +3,5 @@
 namespace WMS::MapChooser
 {
     void Open();
-    bool SelectCancelButton();
+    bool Dismiss();
 }

@@ -27,9 +27,26 @@ namespace WMS::MapMenuKeyHint
 
         bool CreateSkyUIButton(RE::GFxValue& buttonPanel, RE::GFxValue& buttons, RE::GFxValue& button)
         {
-            // Reuse the clip created during an earlier call. SkyUI keeps attached clips and
-            // its public array when it clears and repopulates buttons for a platform change.
+            // Re-register the retained clip after returning from a local map. Keeping the
+            // configured clip avoids attaching another child with the same ActionScript name.
             if (buttonPanel.GetMember("worldMapSelectorButton", &button) && button.IsDisplayObject()) {
+                for (std::uint32_t index = 0; index < buttons.GetArraySize(); ++index) {
+                    RE::GFxValue candidate;
+                    RE::GFxValue name;
+                    if (buttons.GetElement(index, &candidate) && candidate.IsDisplayObject() &&
+                        candidate.GetMember("_name", &name) && name.IsString() &&
+                        std::string_view(name.GetString()) == "worldMapSelectorButton") {
+                        return true;
+                    }
+                }
+
+                if (!buttons.PushBack(button) ||
+                    !buttonPanel.SetMember("maxButtons", buttons.GetArraySize()) ||
+                    !button.SetMember("_visible", true) ||
+                    !buttonPanel.Invoke("updateButtons", nullptr, std::array { RE::GFxValue(true) })) {
+                    return false;
+                }
+
                 return true;
             }
 
@@ -84,8 +101,8 @@ namespace WMS::MapMenuKeyHint
                 return true;
             }
 
-            // Remove our clip from SkyUI's public array before destroying it. Merely hiding the
-            // clip leaves its old layout slot occupied and can overlap local-map additions.
+            // Remove our clip from SkyUI's public array so its layout slot is released. Retain
+            // the configured clip itself so it can be registered again on the world map.
             for (std::uint32_t index = 0; index < buttons.GetArraySize(); ++index) {
                 RE::GFxValue candidate;
                 RE::GFxValue name;
@@ -99,9 +116,19 @@ namespace WMS::MapMenuKeyHint
                 }
             }
 
-            if (!buttonPanel.SetMember("maxButtons", buttons.GetArraySize()) ||
-                !button.Invoke("removeMovieClip", nullptr) ||
-                !buttonPanel.Invoke("updateButtons", nullptr, std::array { RE::GFxValue(true) })) {
+            const auto buttonCount = buttons.GetArraySize();
+            if (!buttonPanel.SetMember("maxButtons", buttonCount)) {
+                SKSE::log::warn("SkyUI key-hint removal failed while updating maxButtons to {}.", buttonCount);
+                return false;
+            }
+
+            if (!button.SetMember("_visible", false)) {
+                SKSE::log::warn("SkyUI key-hint removal failed while hiding the retained button clip.");
+                return false;
+            }
+
+            if (!buttonPanel.Invoke("updateButtons", nullptr, std::array { RE::GFxValue(true) })) {
+                SKSE::log::warn("SkyUI key-hint removal failed while updating the button layout.");
                 return false;
             }
 
@@ -156,11 +183,23 @@ namespace WMS::MapMenuKeyHint
         CreateButtonData(movie, buttonData);
 
         // Add the new entry through SkyUI's normal population and layout methods.
+        const auto buttonCount = buttons.GetArraySize();
         RE::GFxValue configuredButton;
-        if (!buttonPanel.Invoke("addButton", &configuredButton, std::array { buttonData }) ||
-            !configuredButton.IsDisplayObject() ||
-            !buttonPanel.Invoke("updateButtons", nullptr, std::array { RE::GFxValue(true) })) {
-            SKSE::log::warn("SkyUI MapMenu key hint could not be configured.");
+        if (!buttonPanel.Invoke("addButton", &configuredButton, std::array { buttonData })) {
+            SKSE::log::warn("SkyUI key-hint configuration failed while invoking addButton; panelButtons={}.", buttonCount);
+            return;
+        }
+
+        if (!configuredButton.IsDisplayObject()) {
+            SKSE::log::warn(
+                "SkyUI addButton returned a non-display value; panelButtons={}, resultType={}.",
+                buttonCount,
+                static_cast<std::uint32_t>(configuredButton.GetType()));
+            return;
+        }
+
+        if (!buttonPanel.Invoke("updateButtons", nullptr, std::array { RE::GFxValue(true) })) {
+            SKSE::log::warn("SkyUI key-hint configuration failed while updating the layout; panelButtons={}.", buttonCount);
             return;
         }
 

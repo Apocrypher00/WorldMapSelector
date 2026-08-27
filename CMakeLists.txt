@@ -52,8 +52,8 @@ add_library(
 )
 
 # These are the target settings normally supplied by add_commonlibsse_plugin.
-# PluginVersion.cpp provides the runtime metadata directly because CommonLib 4.39.0's
-# convenience function cannot process more than one COMPATIBLE_RUNTIMES entry.
+# PluginVersion.cpp keeps the explicit supported-runtime list and its generated
+# SKSE metadata under project source control.
 target_compile_definitions(${PROJECT_NAME} PRIVATE __CMAKE_COMMONLIBSSE_PLUGIN=1)
 target_link_libraries(${PROJECT_NAME} PUBLIC CommonLibSSE::CommonLibSSE)
 target_include_directories(
@@ -117,7 +117,9 @@ function(install_license sourcePath outputName)
 endfunction()
 
 install_license("${CMAKE_CURRENT_SOURCE_DIR}/UNLICENSE" "WorldMapSelector")
-install_license("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/LICENSE" "CommonLibSSE-NG")
+install_license("${CMAKE_CURRENT_SOURCE_DIR}/LICENSING.md" "WorldMapSelector-Licensing")
+install_license("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/COPYING" "CommonLibSSE-NG-GPL-3.0")
+install_license("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/EXCEPTIONS.md" "CommonLibSSE-NG-Exceptions")
 
 set(vcpkgShareDirectory "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share")
 install_license("${vcpkgShareDirectory}/directxmath/copyright" "directxmath")

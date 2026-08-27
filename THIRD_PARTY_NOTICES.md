@@ -1,7 +1,9 @@
 # Third-Party Notices
 
-WorldMapSelector itself is released under the Unlicense. That license does not
-replace the licenses of the third-party projects used to build or run it.
+WorldMapSelector-authored source is released under the Unlicense. The combined
+plugin binary is governed by GPL-3.0-or-later with CommonLibSSE NG's exceptions.
+See `LICENSING.md` for that distinction. Neither grant replaces the licenses of
+other third-party projects used to build or run WorldMapSelector.
 
 ## Runtime requirements (not redistributed)
 
@@ -14,7 +16,7 @@ replace the licenses of the third-party projects used to build or run it.
 
 | Project | License | Copyright / attribution |
 | --- | --- | --- |
-| [CommonLibSSE NG](https://github.com/alandtse/CommonLibVR) | MIT | Copyright (c) 2018 Ryan-rsm-McKenzie and subsequent contributors. Includes work from CommonLibSSE and CommonLibSSE-NG. |
+| [CommonLibSSE NG](https://github.com/alandtse/CommonLibSSE-NG) | GPL-3.0-or-later with Modding and Linking Exceptions | Copyright (c) 2018 Ryan-rsm-McKenzie and subsequent contributors. Includes work from CommonLibSSE and CommonLibSSE-NG. |
 | [MinHook](https://github.com/TsudaKageyu/minhook) | 2-clause BSD | Copyright (c) 2009-2017 Tsuda Kageyu. Includes Hacker Disassembler Engine portions by Vyacheslav Patkov. |
 | [fmt](https://github.com/fmtlib/fmt) | MIT | Copyright (c) 2012-present Victor Zverovich and fmt contributors. |
 | [spdlog](https://github.com/gabime/spdlog) | MIT | Copyright (c) 2016 Gabi Melman. |
@@ -31,8 +33,9 @@ builtin baseline, and the CommonLibSSE NG Git submodule commit.
 
 ## License terms
 
-The complete license text for CommonLibSSE NG is present in its checked-in Git
-submodule at `extern/CommonLibVR/LICENSE`. Exact license texts for vcpkg
+The complete GPL text and exceptions for CommonLibSSE NG are present in its
+checked-in Git submodule at `extern/CommonLibVR/COPYING` and
+`extern/CommonLibVR/EXCEPTIONS.md`. Exact license texts for vcpkg
 dependencies are installed under each package's `share/<package>/copyright`
 path during the build.
 

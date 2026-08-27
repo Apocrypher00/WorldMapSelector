@@ -205,7 +205,7 @@ release and the exact dependency pins used to reproduce it.
 
 WorldMapSelector depends at runtime on SKSE64 and Address Library for SKSE
 Plugins. Development is built on
-[CommonLibSSE NG](https://github.com/alandtse/CommonLibVR), including the work
+[CommonLibSSE NG](https://github.com/alandtse/CommonLibSSE-NG), including the work
 of the original CommonLibSSE and CommonLibSSE-NG contributors, and uses
 [MinHook](https://github.com/TsudaKageyu/minhook) for whole-function detours.
 
@@ -225,6 +225,11 @@ CommonLibSSE NG:
 The project is configured and built with CMake, Ninja, vcpkg, and Microsoft
 Visual C++. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for license
 and attribution information.
+
+WorldMapSelector-authored source remains available under the Unlicense. Because
+CommonLibSSE NG is linked statically, distributed plugin binaries are governed by
+GPL-3.0-or-later with CommonLib's exceptions. See [LICENSING.md](LICENSING.md) for
+the distinction and [SOURCES.md](SOURCES.md) for corresponding source information.
 
 ## Development acknowledgement
 

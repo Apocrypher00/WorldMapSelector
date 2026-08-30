@@ -12,72 +12,46 @@ namespace WMS::ClassicMessageBox
 
         // CommonLib documents MessageBoxMenu as using menu depth 10.
         constexpr std::int32_t menuDepth = 10;
+
+        // Adapt MapChooser's function callback to Skyrim's reference-counted
+        // callback interface used by the dynamically sized overload.
+        class MessageBoxCallback final : public RE::IMessageBoxCallback
+        {
+        public:
+            explicit MessageBoxCallback(ResultCallback callback) : callback_(callback) {}
+
+            void Run(std::uint8_t button) override
+            {
+                if (callback_) callback_(button);
+            }
+
+        private:
+            ResultCallback callback_ = nullptr;
+        };
     }
 
     // Open displays one classic Skyrim message box and reports the selected button index through callback.
     bool Open(const char* message, const std::vector<std::string>& buttons, ResultCallback callback)
     {
-        // Convert an owned string to the C-style string expected by Skyrim.
-        // buttons keeps every string alive until MessageBoxMenu::Create returns.
-        const auto button = [&](std::size_t index) {
-            return buttons[index].c_str();
+        RE::BSString messageText{ message };
+        RE::BSTArray<RE::BSString> buttonText;
+        buttonText.reserve(buttons.size());
+        for (const auto& button : buttons) {
+            buttonText.emplace_back(button.c_str());
+        }
+
+        RE::BSTSmartPointer<RE::IMessageBoxCallback> messageCallback{
+            new MessageBoxCallback(callback)
         };
 
-        // Skyrim's Create function is variadic, so C++ must make a separate call for every supported button count.
-        switch (buttons.size()) {
-            case 1:
-                return RE::MessageBoxMenu::Create(
-                    message, callback, buttonPressOffset, warningType, menuDepth,
-                    button(0)
-                );
-            case 2:
-                return RE::MessageBoxMenu::Create(
-                    message, callback, buttonPressOffset, warningType, menuDepth,
-                    button(0), button(1)
-                );
-            case 3:
-                return RE::MessageBoxMenu::Create(
-                    message, callback, buttonPressOffset, warningType, menuDepth,
-                    button(0), button(1), button(2)
-                );
-            case 4:
-                return RE::MessageBoxMenu::Create(
-                    message, callback, buttonPressOffset, warningType, menuDepth,
-                    button(0), button(1), button(2), button(3)
-                );
-            case 5:
-                return RE::MessageBoxMenu::Create(
-                    message, callback, buttonPressOffset, warningType, menuDepth,
-                    button(0), button(1), button(2), button(3), button(4)
-                );
-            case 6:
-                return RE::MessageBoxMenu::Create(
-                    message, callback, buttonPressOffset, warningType, menuDepth,
-                    button(0), button(1), button(2), button(3), button(4), button(5)
-                );
-            case 7:
-                return RE::MessageBoxMenu::Create(
-                    message, callback, buttonPressOffset, warningType, menuDepth,
-                    button(0), button(1), button(2), button(3), button(4), button(5), button(6)
-                );
-            case 8:
-                return RE::MessageBoxMenu::Create(
-                    message, callback, buttonPressOffset, warningType, menuDepth,
-                    button(0), button(1), button(2), button(3), button(4), button(5), button(6), button(7)
-                );
-            case 9:
-                return RE::MessageBoxMenu::Create(
-                    message, callback, buttonPressOffset, warningType, menuDepth,
-                    button(0), button(1), button(2), button(3), button(4), button(5), button(6), button(7), button(8)
-                );
-            case 10:
-                return RE::MessageBoxMenu::Create(
-                    message, callback, buttonPressOffset, warningType, menuDepth,
-                    button(0), button(1), button(2), button(3), button(4), button(5), button(6), button(7), button(8), button(9)
-                );
-            default:
-                return false;
-        }
+        return RE::MessageBoxMenu::Create(
+            messageText,
+            messageCallback,
+            buttonPressOffset,
+            warningType,
+            menuDepth,
+            buttonText
+        );
     }
 
     // Dismiss removes the current message box without reporting any button as selected.

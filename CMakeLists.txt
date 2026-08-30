@@ -31,9 +31,22 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/cmake/CommonLibSSE.cmake
 find_package(minhook CONFIG REQUIRED)
 find_path(SIMPLEINI_INCLUDE_DIR SimpleIni.h REQUIRED)
 
-add_library(
+add_commonlibsse_plugin(
     ${PROJECT_NAME}
-    SHARED
+    AUTHOR "Apocrypher00"
+    COMPATIBLE_RUNTIMES
+        1.5.97.0
+        1.6.318.0
+        1.6.323.0
+        1.6.342.0
+        1.6.353.0
+        1.6.629.0
+        1.6.640.0
+        1.6.1130.0
+        1.6.1170.0
+        1.7.99.0
+        1.7.104.0
+    SOURCES
         src/ClassicMessageBox.cpp
         src/ClassicMessageBox.h
         src/Config.cpp
@@ -50,7 +63,6 @@ add_library(
         src/MapSelection.cpp
         src/MapSwitchFlow.cpp
         src/MapSwitchFlow.h
-        src/PluginVersion.cpp
         src/RoutedMarkerOverride.cpp
         src/RoutedMarkerOverride.h
         src/Utilities.cpp
@@ -58,25 +70,6 @@ add_library(
         src/WorldspaceCatalog.cpp
         src/WorldspaceOverride.cpp
         src/plugin.cpp
-)
-
-# These are the target settings normally supplied by add_commonlibsse_plugin.
-# PluginVersion.cpp keeps the explicit supported-runtime list and its generated
-# SKSE metadata under project source control.
-target_compile_definitions(
-    ${PROJECT_NAME}
-    PRIVATE
-        __CMAKE_COMMONLIBSSE_PLUGIN=1
-        WMS_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
-        WMS_VERSION_MINOR=${PROJECT_VERSION_MINOR}
-        WMS_VERSION_PATCH=${PROJECT_VERSION_PATCH}
-        WMS_VERSION_TWEAK=${PROJECT_VERSION_TWEAK}
-)
-target_link_libraries(${PROJECT_NAME} PUBLIC CommonLibSSE::CommonLibSSE)
-target_include_directories(
-    ${PROJECT_NAME}
-    PUBLIC
-        "${CommonLibSSE_INCLUDE_DIRS}"
 )
 
 target_include_directories(

@@ -47,6 +47,9 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
         return false;
     }
 
+    // Resolve directly called native functions before preparing detours.
+    WMS::MapMarkerOverride::ResolveNativeFunctions();
+
     if (!WMS::Hooks::Initialize()) { return false; }
 
     // Create every detour in a disabled state.

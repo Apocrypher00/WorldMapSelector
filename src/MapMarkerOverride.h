@@ -2,5 +2,6 @@
 
 namespace WMS::MapMarkerOverride
 {
+    void ResolveNativeFunctions();
     bool CreateHooks();
 }

@@ -14,7 +14,7 @@ namespace WMS::MapMarkerOverride
         // Skyrim's native function to collect map marker handles from a worldspace.
 		// Takes the worldspace to collect from, a pointer to the destination array, and a boolean to include hidden markers.
         using CollectMapMarkerHandles_t = void (*)(RE::TESWorldSpace*, RE::BSTArray<RE::ObjectRefHandle>*, bool);
-        static REL::Relocation<CollectMapMarkerHandles_t> collectMapMarkerHandles{ REL::RelocationID(20089, 20536) };
+        static REL::Relocation<CollectMapMarkerHandles_t> collectMapMarkerHandles{};
 
 		// Skyrim's native function to add the player's current location marker to the map.
 		// It takes a pointer to the destination array and a pointer to the player's marker position.
@@ -104,9 +104,16 @@ namespace WMS::MapMarkerOverride
         }
     }
 
+    // Resolve native functions called directly by the marker overrides.
+    void ResolveNativeFunctions()
+    {
+        collectMapMarkerHandles = REL::RelocationID(20089, 20536);
+    }
+
     // Creates the ordinary world-marker detours in a disabled state.
     bool CreateHooks()
     {
+
         if (!Hooks::Create(
             "AddCurrentLocationMarker",
             REL::RelocationID(52184, 53076),

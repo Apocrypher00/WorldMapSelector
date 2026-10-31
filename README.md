@@ -27,7 +27,7 @@ by some other means.
 
 ## Compatibility
 
-Supported Steam Skyrim runtimes:
+Supported Skyrim runtimes (Steam unless marked GOG):
 
 | Skyrim | SKSE |
 | --- | --- |
@@ -40,15 +40,17 @@ Supported Steam Skyrim runtimes:
 | `1.6.640` | `2.2.3` |
 | `1.6.1130` | `2.2.5` |
 | `1.6.1170` | `2.2.6` |
+| `1.6.1179` (GOG) | `2.2.6` (GOG) |
 | `1.7.99` | `2.3.0` |
 | `1.7.104` | `2.3.1` |
 
 Install the SKSE build and Address Library database matching the exact Skyrim
-runtime.
+runtime. GOG requires the GOG SKSE build, not the Steam build with the same
+version number. The same WorldMapSelector DLL supports both stores.
 
 Skyrim `1.6.317` is not supported because its matching official SKSE `2.1.0`
 release does not load native DLL plugins. Other `1.5.x` runtimes, Skyrim VR,
-GOG, and future Skyrim updates are unsupported unless explicitly listed above.
+and unlisted Skyrim runtimes are unsupported.
 
 SkyUI is optional. When its compatible MapMenu interface is loaded,
 WorldMapSelector adds a `Select Map` keyboard hint to the bottom button panel.
@@ -145,7 +147,8 @@ list when reporting a problem.
 The log is normally written to:
 
 ```text
-Documents/My Games/Skyrim Special Edition/SKSE/WorldMapSelector.log
+Steam: Documents/My Games/Skyrim Special Edition/SKSE/WorldMapSelector.log
+GOG:   Documents/My Games/Skyrim Special Edition GOG/SKSE/WorldMapSelector.log
 ```
 
 ## Building

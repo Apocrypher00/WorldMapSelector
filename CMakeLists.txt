@@ -44,6 +44,7 @@ add_commonlibsse_plugin(
         1.6.640.0
         1.6.1130.0
         1.6.1170.0
+        1.6.1179.1 # SKSE encodes GOG as runtime type 1; executable version remains 1.6.1179.0.
         1.7.99.0
         1.7.104.0
     SOURCES

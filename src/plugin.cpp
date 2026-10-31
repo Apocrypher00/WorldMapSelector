@@ -41,7 +41,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
 
     // Resolve every interface needed after hook activation before changing any game function.
     auto* messaging = SKSE::GetMessagingInterface();
-    auto* ui = RE::UI::GetSingleton();
+    auto* ui        = RE::UI::GetSingleton();
     if (!messaging || !ui) {
         SKSE::log::error("Could not obtain the required SKSE/UI interfaces.");
         return false;

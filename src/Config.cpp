@@ -8,9 +8,6 @@ namespace WMS::Config
 {
     namespace
     {
-        // Turn the game-relative INI path into the path SimpleIni reads.
-        const auto configPath = std::filesystem::absolute("Data\\SKSE\\Plugins\\WorldMapSelector.ini").string();
-
         // Initialize the plugin configuration settings with their default values.
         // Missing or invalid INI entries leave these values unchanged.
         auto logLevel                 = spdlog::level::info; // This default actually needs to be applied
@@ -171,6 +168,9 @@ namespace WMS::Config
     // Load the INI file and replace defaults only with settings that exist and parse successfully.
     void Load()
     {
+        // Turn the game-relative INI path into the path SimpleIni reads.
+        const auto configPath = std::filesystem::absolute("Data\\SKSE\\Plugins\\WorldMapSelector.ini").string();
+
 		// Read the INI file into memory.
 		// SimpleIni's LoadFile returns a status code, which is negative on error and non-negative on success.
         CSimpleIniA ini;

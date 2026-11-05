@@ -85,10 +85,10 @@ target_link_libraries(
         minhook::minhook
 )
 
-target_compile_options(
+target_precompile_headers(
     ${PROJECT_NAME}
     PRIVATE
-        "/FI${CMAKE_CURRENT_SOURCE_DIR}/src/PCH.h"
+        src/PCH.h
 )
 
 # Select the same configuration for the loose build output and packaged INI.

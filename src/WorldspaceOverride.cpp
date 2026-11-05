@@ -117,6 +117,11 @@ namespace WMS::WorldspaceOverride
 
     bool CreateHook()
     {
-        return Hooks::Create("WMS_ResolveMapWorldSpace", REL::RelocationID(52260, 53150), ResolveMapWorldSpaceHook, originalResolveMapWorldSpace);
+        return Hooks::Create(
+            "WMS_ResolveMapWorldSpace",
+            REL::RelocationID(52260, 53150),
+            ResolveMapWorldSpaceHook,
+            originalResolveMapWorldSpace
+        );
     }
 }

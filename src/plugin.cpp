@@ -54,7 +54,10 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
 
     // Create every detour in a disabled state.
     // If any creation fails, Reset removes all previously created hooks before SKSE rejects the plugin.
-    if (!WMS::WorldspaceOverride::CreateHook() || !WMS::MapMarkerOverride::CreateHooks() || !WMS::RoutedMarkerOverride::CreateHooks()) {
+    if (!WMS::WorldspaceOverride::CreateHook() ||
+        !WMS::MapMarkerOverride::CreateHooks() ||
+        !WMS::RoutedMarkerOverride::CreateHooks()
+    ) {
         WMS::Hooks::Reset();
         return false;
     }

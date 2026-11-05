@@ -113,7 +113,6 @@ namespace WMS::MapMarkerOverride
     // Creates the ordinary world-marker detours in a disabled state.
     bool CreateHooks()
     {
-
         if (!Hooks::Create(
             "AddCurrentLocationMarker",
             REL::RelocationID(52184, 53076),

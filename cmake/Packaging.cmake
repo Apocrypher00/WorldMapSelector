@@ -37,7 +37,7 @@ install_license("${CMAKE_CURRENT_SOURCE_DIR}/UNLICENSE" "WorldMapSelector")
 install_license("${CMAKE_CURRENT_SOURCE_DIR}/LICENSING.md" "WorldMapSelector-Licensing")
 install_license("${CMAKE_CURRENT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md" "WorldMapSelector-ThirdPartyNotices")
 install_license("${CMAKE_CURRENT_SOURCE_DIR}/SOURCES.md" "WorldMapSelector-Sources")
-install_license("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/COPYING" "CommonLibSSE-NG-GPL-3.0")
+install_license("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/COPYING.txt" "CommonLibSSE-NG-GPL-3.0")
 install_license("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/EXCEPTIONS.md" "CommonLibSSE-NG-Exceptions")
 
 set(vcpkgShareDirectory "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share")

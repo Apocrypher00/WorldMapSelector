@@ -197,15 +197,17 @@ The Nexus-ready archive is written to the release build directory as
 and required project and third-party license files in their Data-relative
 locations.
 
-For private testing, use the separate optimized testing preset:
+For private testing, package the same optimized Release build:
 
 ```powershell
-cmake --preset x64-Release-Testing
+cmake --preset x64-Release
 cmake --build --preset x64-Release-Testing-Package
 ```
 
-This uses its own `out/build/x64-Release-Testing` directory and packages
-`config/WorldMapSelector-testing.ini` as `WorldMapSelector.ini`. The testing
+Both packages share `out/build/x64-Release` and the same DLL, so switching package
+presets does not rebuild CommonLib or the plugin when sources are unchanged.
+The testing package uses `config/WorldMapSelector-testing.ini` as
+`WorldMapSelector.ini`; the loose build output keeps the public INI. The testing
 defaults are Debug logging and one map per page; edit that file for each test
 pass without changing public defaults. Rebuilding picks up INI-only edits too.
 

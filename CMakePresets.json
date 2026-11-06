@@ -18,8 +18,7 @@
       },
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
-        "WMS_USE_TESTING_INI": "OFF"
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md"
       }
     },
     {
@@ -36,14 +35,6 @@
       "inherits": "windows-x64-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "name": "x64-Release-Testing",
-      "displayName": "x64 Release Testing",
-      "inherits": "x64-Release",
-      "cacheVariables": {
-        "WMS_USE_TESTING_INI": "ON"
       }
     }
   ],
@@ -69,8 +60,8 @@
       "name": "x64-Release-Testing-Package",
       "displayName": "x64 Release Testing Package",
       "description": "Build a private testing ZIP with the editable testing INI and no release notices.",
-      "configurePreset": "x64-Release-Testing",
-      "targets": [ "package" ]
+      "configurePreset": "x64-Release",
+      "targets": [ "package-testing" ]
     }
   ]
 }

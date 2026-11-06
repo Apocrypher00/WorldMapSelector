@@ -98,14 +98,7 @@ target_precompile_headers(
         src/PCH.h
 )
 
-# Select the same configuration for the loose build output and packaged INI.
-# Public presets explicitly keep release defaults; only the testing preset opts in.
-option(WMS_USE_TESTING_INI "Use the editable private-testing INI instead of public defaults." OFF)
-if(WMS_USE_TESTING_INI)
-    set(wmsConfigurationFile "${CMAKE_CURRENT_SOURCE_DIR}/config/WorldMapSelector-testing.ini")
-else()
-    set(wmsConfigurationFile "${CMAKE_CURRENT_SOURCE_DIR}/WorldMapSelector.ini")
-endif()
+set(wmsConfigurationFile "${CMAKE_CURRENT_SOURCE_DIR}/WorldMapSelector.ini")
 
 # The single-config Ninja presets place the DLL in this same directory.
 # configure_file also tracks INI edits, so rebuilding refreshes it without relinking the DLL.

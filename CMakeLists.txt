@@ -85,6 +85,13 @@ target_link_libraries(
         minhook::minhook
 )
 
+# Keep Windows min/max macros from colliding with standard-library functions.
+target_compile_definitions(
+    ${PROJECT_NAME}
+    PRIVATE
+        NOMINMAX
+)
+
 target_precompile_headers(
     ${PROJECT_NAME}
     PRIVATE

@@ -47,6 +47,13 @@ namespace WMS::Diagnostics
             return;
         }
 
+        if (REL::Module::IsVR()) {
+            const auto* runtimeData = mapMenu->GetVRRuntimeData2();
+            if (runtimeData) LogWorldspace("MapMenu", runtimeData->worldSpace);
+            // TODO: Identify VR's camera-worldspace equivalent before adding camera diagnostics.
+            return;
+        }
+
         const auto* runtimeData = mapMenu->GetRuntimeData2();
         if (!runtimeData) {
             SKSE::log::warn("MapMenu runtime data was unavailable.");

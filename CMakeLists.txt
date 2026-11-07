@@ -21,7 +21,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(ENABLE_SKYRIM_SE ON CACHE BOOL "" FORCE)
 set(ENABLE_SKYRIM_AE ON CACHE BOOL "" FORCE)
-set(ENABLE_SKYRIM_VR OFF CACHE BOOL "" FORCE)
+set(ENABLE_SKYRIM_VR ON CACHE BOOL "" FORCE)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(extern/CommonLibVR)
@@ -35,6 +35,7 @@ add_commonlibsse_plugin(
     ${PROJECT_NAME}
     AUTHOR "Apocrypher00"
     COMPATIBLE_RUNTIMES
+        1.4.15.0
         1.5.97.0
         1.6.318.0
         1.6.323.0

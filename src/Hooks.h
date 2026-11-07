@@ -4,12 +4,12 @@
 
 namespace WMS::Hooks
 {
-    // This template is implemented in the header so each call site can compile a correctly typed version for its particular Address Library ID and function pointer.
+    // This template is implemented in the header so each call site can compile a correctly typed version for its address source and function pointer.
     template <class AddressID, class Function>
     bool Create(std::string_view name, const AddressID& id, Function detour, Function& original)
     {
-        // AddressID accepts either REL::ID or REL::RelocationID.
-        // Constructing the relocation resolves that identifier to this runtime's address.
+        // Accepts REL::ID, REL::RelocationID, REL::VariantID, or REL::Offset.
+        // The relocation resolves the supplied identifier or offset to this runtime's address.
         REL::Relocation<std::uintptr_t> target{ id };
 
         // MinHook accepts untyped addresses.

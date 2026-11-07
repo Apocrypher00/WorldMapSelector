@@ -90,6 +90,11 @@ namespace WMS::MapMenuKeyHint
 
         bool IsLocalMapShowing(const RE::MapMenu& mapMenu)
         {
+            if (REL::Module::IsVR()) {
+                const auto* mapData = mapMenu.GetVRRuntimeData();
+                return mapData && mapData->localMapMenu.GetRuntimeData().showingMap;
+            }
+
             const auto* mapData = mapMenu.GetRuntimeData();
             return mapData && mapData->localMapMenu.GetRuntimeData().showingMap;
         }

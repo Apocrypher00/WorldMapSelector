@@ -21,12 +21,16 @@ namespace WMS::MapMarkerOverride
         using AddCurrentLocationMarker_t = void (*)(RE::BSTArray<RE::MapMenuMarker>*, RE::NiPoint3*);
         AddCurrentLocationMarker_t originalAddCurrentLocationMarker = nullptr;
 
+        // VR also passes the player's marker rotation. Preserve it on native maps.
+        using AddCurrentLocationMarkerVR_t = void (*)(RE::BSTArray<RE::MapMenuMarker>*, RE::NiPoint3*, RE::NiPoint3*);
+        AddCurrentLocationMarkerVR_t originalAddCurrentLocationMarkerVR = nullptr;
+
         // Skyrim's native functions to add ordinary markers from handles to the map.
         // AE's helper processes one handle; its caller owns the loop.
         using AddMarkerFromHandleAE_t = std::uint64_t (*)(RE::BSTArray<RE::MapMenuMarker>**, RE::ObjectRefHandle*);
         AddMarkerFromHandleAE_t originalAddMarkerFromHandleAE = nullptr;
 
-        // SE's helper receives the complete handle array and owns the loop itself.
+        // SE and VR receive the complete handle array and own the loop themselves.
         using AddMarkersFromHandlesSE_t = std::uint64_t (*)(RE::BSTArray<RE::ObjectRefHandle>*, RE::BSTArray<RE::MapMenuMarker>**);
         AddMarkersFromHandlesSE_t originalAddMarkersFromHandlesSE = nullptr;
 
@@ -35,7 +39,7 @@ namespace WMS::MapMarkerOverride
             const auto markerCountBefore = mapMarkers->size();
             auto* destination = mapMarkers;
 
-            if (REL::Module::IsSE()) {
+            if (!REL::Module::IsAE()) {
                 originalAddMarkersFromHandlesSE(std::addressof(selectedMapMarkerHandles), std::addressof(destination));
             } else {
                 for (auto& handle : selectedMapMarkerHandles) {
@@ -46,10 +50,10 @@ namespace WMS::MapMarkerOverride
             return mapMarkers->size() - markerCountBefore;
         }
 
-        // Detour for vanilla's AddCurrentLocationMarker.
-        // Vanilla calls this immediately before processing the player's currentMapMarkers array.
+        // Shared implementation for the flat and VR current-location detours.
+        // Vanilla calls these immediately before processing the player's currentMapMarkers array.
         // For a remote map, append markers collected from the selected worldspace, and omit the player's location marker.
-        void AddCurrentLocationMarkerHook(RE::BSTArray<RE::MapMenuMarker>* mapMarkers, RE::NiPoint3* playerMarkerPosition)
+        void AddCurrentLocationMarker(RE::BSTArray<RE::MapMenuMarker>* mapMarkers, RE::NiPoint3* playerMarkerPosition, RE::NiPoint3* playerMarkerRotation)
         {
             suppressActualWorldMarkers = false;
 
@@ -57,7 +61,11 @@ namespace WMS::MapMarkerOverride
 
 			// If we're not processing a remote map, call the original function to add the player's current location marker.
             if (!selectedWorldspace) {
-                originalAddCurrentLocationMarker(mapMarkers, playerMarkerPosition);
+                if (REL::Module::IsVR()) {
+                    originalAddCurrentLocationMarkerVR(mapMarkers, playerMarkerPosition, playerMarkerRotation);
+                } else {
+                    originalAddCurrentLocationMarker(mapMarkers, playerMarkerPosition);
+                }
                 return;
             }
 
@@ -78,7 +86,18 @@ namespace WMS::MapMarkerOverride
             );
         }
 
-		// AE detour for vanilla's AddMarkerFromHandle.
+        // Preserve each runtime's native argument list at the detour boundary.
+        void AddCurrentLocationMarkerHook(RE::BSTArray<RE::MapMenuMarker>* mapMarkers, RE::NiPoint3* playerMarkerPosition)
+        {
+            AddCurrentLocationMarker(mapMarkers, playerMarkerPosition, nullptr);
+        }
+
+        void AddCurrentLocationMarkerVRHook(RE::BSTArray<RE::MapMenuMarker>* mapMarkers, RE::NiPoint3* playerMarkerPosition, RE::NiPoint3* playerMarkerRotation)
+        {
+            AddCurrentLocationMarker(mapMarkers, playerMarkerPosition, playerMarkerRotation);
+        }
+
+        // AE detour for vanilla's AddMarkerFromHandle.
         // Returning zero tells AE's caller-owned currentMapMarkers loop to stop.
         // The selected markers were already appended by AddCurrentLocationMarkerHook.
         std::uint64_t AddMarkerFromHandleAEHook(RE::BSTArray<RE::MapMenuMarker>** destination, RE::ObjectRefHandle* handle)
@@ -91,7 +110,7 @@ namespace WMS::MapMarkerOverride
             }
         }
 
-        // SE calls this helper once with the entire actual-world handle array.
+        // SE and VR call this helper once with the entire actual-world handle array.
         // The selected array was already processed above, so suppress that one complete vanilla pass.
         std::uint64_t AddMarkersFromHandlesSEHook(RE::BSTArray<RE::ObjectRefHandle>* handles, RE::BSTArray<RE::MapMenuMarker>** destination)
         {
@@ -107,23 +126,30 @@ namespace WMS::MapMarkerOverride
     // Resolve native functions called directly by the marker overrides.
     void ResolveNativeFunctions()
     {
-        collectMapMarkerHandles = REL::RelocationID(20089, 20536);
+        collectMapMarkerHandles = REL::VariantID(20089, 20536, 0x2C7460);
     }
 
     // Creates the ordinary world-marker detours in a disabled state.
     bool CreateHooks()
     {
-        if (!Hooks::Create(
+        if (REL::Module::IsVR()) {
+            if (!Hooks::Create(
+                "AddCurrentLocationMarkerVR",
+                REL::Offset(0x913910),
+                AddCurrentLocationMarkerVRHook,
+                originalAddCurrentLocationMarkerVR
+            )) return false;
+        } else if (!Hooks::Create(
             "AddCurrentLocationMarker",
             REL::RelocationID(52184, 53076),
             AddCurrentLocationMarkerHook,
             originalAddCurrentLocationMarker
         )) return false;
 
-        if (REL::Module::IsSE()) {
+        if (!REL::Module::IsAE()) {
             return Hooks::Create(
                 "AddMarkersFromHandles",
-                REL::ID(52235),
+                REL::VariantID(52235, 0, 0x91A060),
                 AddMarkersFromHandlesSEHook,
                 originalAddMarkersFromHandlesSE
             );

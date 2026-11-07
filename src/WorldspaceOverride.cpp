@@ -92,7 +92,7 @@ namespace WMS::WorldspaceOverride
 
     void BeginSession()
     {
-        // The constructor's resolver call established selectedMapWorldspace
+        // The menu initialization's resolver call established selectedMapWorldspace
         // immediately before the MapMenu open event reaches this function.
         std::scoped_lock sessionGuard(sessionLock);
 
@@ -119,7 +119,7 @@ namespace WMS::WorldspaceOverride
     {
         return Hooks::Create(
             "WMS_ResolveMapWorldSpace",
-            REL::RelocationID(52260, 53150),
+            REL::VariantID(52260, 53150, 0x91C0A0),
             ResolveMapWorldSpaceHook,
             originalResolveMapWorldSpace
         );

@@ -90,11 +90,6 @@ namespace WMS::MapMenuKeyHint
 
         bool IsLocalMapShowing(const RE::MapMenu& mapMenu)
         {
-            if (REL::Module::IsVR()) {
-                const auto* mapData = mapMenu.GetVRRuntimeData();
-                return mapData && mapData->localMapMenu.GetRuntimeData().showingMap;
-            }
-
             const auto* mapData = mapMenu.GetRuntimeData();
             return mapData && mapData->localMapMenu.GetRuntimeData().showingMap;
         }
@@ -144,6 +139,12 @@ namespace WMS::MapMenuKeyHint
     void Show()
     {
         if (!Config::GetAllowChooserWhileMapOpen() || !Config::GetShowMapMenuKeyHint()) {
+            return;
+        }
+
+        // VR uses native floating control panels rather than the flat SkyUI button panel.
+        if (REL::Module::IsVR()) {
+            SKSE::log::debug("MapMenu key hint is unavailable on VR: its native control panels do not use the flat SkyUI button panel.");
             return;
         }
 
@@ -213,6 +214,8 @@ namespace WMS::MapMenuKeyHint
 
     void RefreshAfterInputModeChange()
     {
+        if (REL::Module::IsVR()) return;
+
         // Input events also arrive during gameplay. Only queue UI work when MapMenu is active.
         auto* ui = RE::UI::GetSingleton();
         if (!ui || !ui->IsMenuOpen(RE::MapMenu::MENU_NAME)) {
@@ -232,6 +235,8 @@ namespace WMS::MapMenuKeyHint
 
     void RefreshAfterMapModeChange()
     {
+        if (REL::Module::IsVR()) return;
+
         // Skyrim updates LocalMapMenu::showingMap while processing the Local Map input.
         // Queue the refresh so Show observes the new mode rather than the old one.
         const auto* tasks = SKSE::GetTaskInterface();

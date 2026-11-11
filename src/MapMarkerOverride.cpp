@@ -126,7 +126,7 @@ namespace WMS::MapMarkerOverride
     // Resolve native functions called directly by the marker overrides.
     void ResolveNativeFunctions()
     {
-        collectMapMarkerHandles = REL::VariantID(20089, 20536, 0x2C7460);
+        collectMapMarkerHandles = REL::RelocationID(20089, 20536);
     }
 
     // Creates the ordinary world-marker detours in a disabled state.
@@ -135,7 +135,7 @@ namespace WMS::MapMarkerOverride
         if (REL::Module::IsVR()) {
             if (!Hooks::Create(
                 "AddCurrentLocationMarkerVR",
-                REL::Offset(0x913910),
+                REL::ID(52184),
                 AddCurrentLocationMarkerVRHook,
                 originalAddCurrentLocationMarkerVR
             )) return false;
@@ -149,7 +149,7 @@ namespace WMS::MapMarkerOverride
         if (!REL::Module::IsAE()) {
             return Hooks::Create(
                 "AddMarkersFromHandles",
-                REL::VariantID(52235, 0, 0x91A060),
+                REL::ID(52235),
                 AddMarkersFromHandlesSEHook,
                 originalAddMarkersFromHandlesSE
             );

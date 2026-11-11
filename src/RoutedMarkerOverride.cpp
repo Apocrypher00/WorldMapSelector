@@ -158,25 +158,25 @@ namespace WMS::RoutedMarkerOverride
         return (
             Hooks::Create(
                 "BindCustomDestinationMarker",
-                REL::VariantID(52186, 53078, 0x913AB0),
+                REL::RelocationID(52186, 53078),
                 BindCustomDestinationMarkerHook,
                 originalBindCustomDestinationMarker
             ) &&
             Hooks::Create(
                 "AppendQuestMarkers",
-                REL::VariantID(52181, 53073, 0x913210),
+                REL::RelocationID(52181, 53073),
                 AppendQuestMarkersHook,
                 originalAppendQuestMarkers
             ) &&
             Hooks::Create(
                 "ResolveRoutedMarkerHandle",
-                REL::VariantID(52183, 53075, 0x9136F0),
+                REL::RelocationID(52183, 53075),
                 ResolveRoutedMarkerHandleHook,
                 originalResolveRoutedMarkerHandle
             ) &&
             Hooks::Create(
                 "RouteEntriesShareRootWorldspace",
-                REL::VariantID(52193, 53085, 0x914250),
+                REL::RelocationID(52193, 53085),
                 RouteEntriesShareRootWorldspaceHook,
                 originalRouteEntriesShareRootWorldspace
             )

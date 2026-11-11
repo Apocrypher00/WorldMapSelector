@@ -122,10 +122,13 @@ values. Its defaults are:
 | `ShowCancelButton` | `true` | Shows a visible Cancel button in the chooser. Escape, Tab, and controller Cancel inputs remain available when hidden. |
 | `ShowClearSelectionButton` | `true` | Shows the option that returns map selection to Skyrim. When hidden, every chooser choice explicitly selects a map. |
 | `IncludedWorldspaces` | *(empty)* | Comma-separated EditorIDs allowed in the chooser. An empty value includes every valid map. |
-| `ExcludedWorldspaces` | `Falskaar` | Comma-separated EditorIDs that are omitted from the map chooser. |
+| `ExcludedWorldspaces` | `Falskaar,VRPlayroom` | Comma-separated EditorIDs that are omitted from the map chooser. |
 
 Worldspace lists are case-insensitive. When an EditorID appears in both lists,
 `ExcludedWorldspaces` takes priority.
+
+VR Playroom is excluded by default because it has no usable map terrain. Remove
+`VRPlayroom` from the list if a mod supplies a map for that worldspace.
 
 See the [DirectInput keyboard code reference](https://community.bistudio.com/wiki/DIK_KeyCodes)
 when choosing another hotkey.

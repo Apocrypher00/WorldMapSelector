@@ -22,7 +22,7 @@ namespace WMS::Config
         bool showCancelButton             = true;
         bool showClearSelectionButton     = true;
         std::vector<std::string> includedWorldspaces;
-        std::vector<std::string> excludedWorldspaces { "Falskaar" };
+        std::vector<std::string> excludedWorldspaces { "Falskaar", "VRPlayroom" };
 
         std::optional<spdlog::level::level_enum> ParseLogLevel(std::string_view text)
         {

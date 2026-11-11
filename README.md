@@ -31,6 +31,7 @@ Supported Skyrim runtimes (Steam unless marked GOG):
 
 | Skyrim | SKSE |
 | --- | --- |
+| `1.4.15` (VR) | `2.0.12` (VR) |
 | `1.5.97` | `2.0.20` |
 | `1.6.318` | `2.1.2` |
 | `1.6.323` | `2.1.3` |
@@ -46,22 +47,28 @@ Supported Skyrim runtimes (Steam unless marked GOG):
 
 Install the SKSE build and Address Library database matching the exact Skyrim
 runtime. GOG requires the GOG SKSE build, not the Steam build with the same
-version number. The same WorldMapSelector DLL supports both stores.
+version number. VR requires SKSEVR and VR Address Library **0.302.0 or newer**.
+The same WorldMapSelector DLL supports Steam SE/AE, GOG, and VR.
 
 Skyrim `1.6.317` is not supported because its matching official SKSE `2.1.0`
-release does not load native DLL plugins. Other `1.5.x` runtimes, Skyrim VR,
-and unlisted Skyrim runtimes are unsupported.
+release does not load native DLL plugins. Other `1.5.x` runtimes and unlisted
+Skyrim runtimes are unsupported.
 
 SkyUI is optional. When its compatible MapMenu interface is loaded,
 WorldMapSelector adds a `Select Map` keyboard hint to the bottom button panel.
 Without that interface, the hint is skipped and every other WorldMapSelector
 feature remains available. Other MapMenu interface replacements may vary.
 
+On VR, opening the chooser requires a keyboard hotkey; VR-controller bindings
+are not provided. The key hint is unavailable because VR uses different map
+control panels, including when SkyUI VR is installed.
+
 ## Requirements
 
-- [SKSE64](https://skse.silverlock.org/), using the matching version listed
+- [SKSE64 or SKSEVR](https://skse.silverlock.org/), using the matching version listed
   above for the installed Skyrim runtime
-- [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444), with the database matching the installed Skyrim runtime
+- SE/AE/GOG: [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444), with the database matching the installed Skyrim runtime
+- VR: [VR Address Library for SKSEVR](https://www.nexusmods.com/skyrimspecialedition/mods/58101), version **0.302.0 or newer**
 - [Latest Microsoft Visual C++ Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
 
 CommonLibSSE NG and MinHook are linked into the plugin; users do not install
@@ -152,6 +159,7 @@ The log is normally written to:
 ```text
 Steam: Documents/My Games/Skyrim Special Edition/SKSE/WorldMapSelector.log
 GOG:   Documents/My Games/Skyrim Special Edition GOG/SKSE/WorldMapSelector.log
+VR:    Documents/My Games/Skyrim VR/SKSE/WorldMapSelector.log
 ```
 
 ## Building
@@ -230,8 +238,8 @@ release and the exact dependency pins used to reproduce it.
 
 ## Dependencies and acknowledgements
 
-WorldMapSelector depends at runtime on SKSE64 and Address Library for SKSE
-Plugins. Development is built on
+WorldMapSelector depends at runtime on the matching SKSE and Address Library
+builds listed above. Development is built on
 [CommonLibSSE NG](https://github.com/alandtse/CommonLibSSE-NG), including the work
 of the original CommonLibSSE and CommonLibSSE-NG contributors, and uses
 [MinHook](https://github.com/TsudaKageyu/minhook) for whole-function detours.
